@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="description" content="寶光崇正2027年度全球行事曆">
   <title>寶光崇正2027年度全球行事曆</title>
-  <link rel="stylesheet" href="styles.css?v=20260909-7">
+  <link rel="stylesheet" href="styles.css?v=20260909-9">
 </head>
 <body>
   <header class="topbar">
@@ -41,6 +41,46 @@
         </div>
       </div>
       <div id="filters" class="filters" aria-live="polite"></div>
+
+      <section class="advanced-search" aria-labelledby="searchTitle">
+        <div class="search-heading">
+          <div>
+            <h3 id="searchTitle">進階關鍵字搜尋</h3>
+            <p>僅搜尋目前已勾選分類；最多三個關鍵字，可交叉使用「且」與「或」。</p>
+          </div>
+          <button id="clearSearch" class="clear-search" type="button">清除搜尋</button>
+        </div>
+        <div class="search-builder">
+          <label class="search-term">
+            <span>關鍵字 1</span>
+            <input id="keyword1" type="search" placeholder="例如：身心靈" autocomplete="off">
+          </label>
+          <label class="search-operator">
+            <span>條件</span>
+            <select id="operator2" aria-label="關鍵字一與二的條件">
+              <option value="AND">且 AND</option>
+              <option value="OR">或 OR</option>
+            </select>
+          </label>
+          <label class="search-term">
+            <span>關鍵字 2</span>
+            <input id="keyword2" type="search" placeholder="例如：國高中" autocomplete="off">
+          </label>
+          <label class="search-operator">
+            <span>條件</span>
+            <select id="operator3" aria-label="關鍵字二與三的條件">
+              <option value="AND">且 AND</option>
+              <option value="OR">或 OR</option>
+            </select>
+          </label>
+          <label class="search-term">
+            <span>關鍵字 3</span>
+            <input id="keyword3" type="search" placeholder="例如：線上" autocomplete="off">
+          </label>
+        </div>
+        <p class="search-rule">檢索規則：AND（且）優先於 OR（或）；搜尋活動名稱、日期、單位、分類與地點。</p>
+        <p id="searchSummary" class="search-summary" aria-live="polite"></p>
+      </section>
     </section>
 
     <section class="calendar-toolbar" aria-label="月份切換">
@@ -61,6 +101,6 @@
   </main>
 
   <footer>資料來源：寶光崇正道務中心 Google 試算表</footer>
-  <script src="app.js?v=20260909-8"></script>
+  <script src="app.js?v=20260909-9"></script>
 </body>
 </html>
