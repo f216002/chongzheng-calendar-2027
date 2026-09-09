@@ -145,6 +145,10 @@ function getSearchExpression() {
   return { terms, operators };
 }
 
+function hasActiveSearch() {
+  return getSearchExpression().terms.some(Boolean);
+}
+
 function matchesAdvancedSearch(event) {
   const { terms, operators } = getSearchExpression();
   const activeTerms = terms
@@ -188,10 +192,15 @@ function updateSearchSummary(visibleCount) {
 
 function renderCalendar() {
   const [year, month] = state.month.split('-').map(Number);
-  elements.yearLabel.textContent = `${year} 年`;
-  elements.monthLabel.textContent = `${month} 月`;
+  const searching = hasActiveSearch();
+  elements.yearLabel.textContent = searching ? '目前已勾選分類' : `${year} 年`;
+  elements.monthLabel.textContent = searching ? '全年度搜尋結果' : `${month} 月`;
+  document.querySelector('#previousMonth').disabled = searching;
+  document.querySelector('#nextMonth').disabled = searching;
   const visible = state.events.filter(event =>
-    event.date.startsWith(state.month) && isVisible(event) && matchesAdvancedSearch(event)
+    (searching || event.date.startsWith(state.month)) &&
+    isVisible(event) &&
+    matchesAdvancedSearch(event)
   );
   updateSearchSummary(visible.length);
   const grouped = Map.groupBy ? Map.groupBy(visible, event => event.date) : groupByDate(visible);
