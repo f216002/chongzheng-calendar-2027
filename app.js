@@ -185,8 +185,23 @@ function createEvent(event) {
   item.style.setProperty('--event-color', eventDisplayColor(event, category));
   const name = document.createElement('p'); name.className = 'event-name'; name.textContent = event.name;
   const categoryName = document.createElement('p'); categoryName.className = 'event-category';
-  categoryName.textContent = `${event.categoryName}${event.venue ? ` · ${event.venue}` : ''}`;
+  categoryName.textContent = conciseEventLabel(event, category);
   item.append(name, categoryName); return item;
+}
+
+function conciseEventLabel(event, category) {
+  const eventName = String(event.name || '');
+  if (eventName.startsWith('印尼棉蘭')) return '印尼棉蘭';
+  if (eventName.startsWith('孟加拉')) return '孟加拉';
+  if (eventName.startsWith('馬來')) return '馬來西亞';
+  if (eventName.startsWith('柬埔寨')) return '柬埔寨';
+  if (event.venue) return String(event.venue).trim();
+  return String(category?.name || event.categoryName || '')
+    .replace(/課程與活動/g, '')
+    .replace(/人事課[／/]月懺[／/]活動/g, '')
+    .replace(/仙佛班/g, '')
+    .replace(/[／/]+$/g, '')
+    .trim() || '共同';
 }
 
 function categoryDisplayColor(category) {
@@ -217,9 +232,17 @@ function updateRegionSelection(select) {
   renderFilters(); renderCalendar();
 }
 
+function resetToDefaultSelection() {
+  state.selected = new Set(
+    state.categories.filter(category => category.defaultSelected).map(category => category.code)
+  );
+}
+
 document.querySelectorAll('.region-tab').forEach(button => button.addEventListener('click', () => {
+  if (button.dataset.region === state.activeRegion) return;
   state.activeRegion = button.dataset.region;
-  renderRegionTabs(); renderFilters();
+  resetToDefaultSelection();
+  renderRegionTabs(); renderFilters(); renderCalendar();
 }));
 document.querySelector('#previousMonth').addEventListener('click', () => changeMonth(-1));
 document.querySelector('#nextMonth').addEventListener('click', () => changeMonth(1));
