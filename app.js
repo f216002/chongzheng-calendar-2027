@@ -161,7 +161,7 @@ function createDateCard(date, events) {
 
   const columns = document.createElement('div'); columns.className = 'event-columns';
   const core = createEventColumn('共同核心活動', 'core-events');
-  const regional = createEventColumn('地區道場活動', 'regional-events');
+  const regional = createEventColumn('各單位課程與活動', 'regional-events');
   events.sort((a, b) => a.order - b.order).forEach(event => {
     (isCoreEvent(event) ? core.list : regional.list).append(createEvent(event));
   });
