@@ -1,6 +1,14 @@
 'use strict';
 
 const API_URL = 'https://script.google.com/macros/s/AKfycbx11UqmZ_apamVa7FU5Dp46G9DNddfIeHaohjYFrasLNaZ0QcmDmIl2ZYVmOGihET44/exec';
+const CENTER_CLASS_COLOR = '#A92B2B';
+const REGIONAL_CLASS_COLOR = '#D65A52';
+const REGIONAL_CLASS_KEYWORDS = [
+  '南部進德班',
+  '南部身心靈健康體驗營',
+  '北部身心靈健康體驗營',
+  '北部進德班'
+];
 const state = { categories: [], events: [], selected: new Set(), month: null };
 const elements = {
   filters: document.querySelector('#filters'), calendar: document.querySelector('#calendar'),
@@ -56,7 +64,7 @@ function renderFilters() {
   elements.filters.replaceChildren(...state.categories.map(category => {
     const wrapper = document.createElement('div');
     wrapper.className = 'filter-chip';
-    wrapper.style.setProperty('--chip-color', category.color || '#315e78');
+    wrapper.style.setProperty('--chip-color', categoryDisplayColor(category));
     const input = document.createElement('input');
     input.type = 'checkbox'; input.id = `filter-${category.code}`; input.value = category.code;
     input.checked = state.selected.has(category.code);
@@ -108,11 +116,25 @@ function createDateCard(date, events) {
 function createEvent(event) {
   const category = state.categories.find(item => item.code === event.category);
   const item = document.createElement('div'); item.className = 'event';
-  item.style.setProperty('--event-color', category?.color || '#315e78');
+  item.style.setProperty('--event-color', eventDisplayColor(event, category));
   const name = document.createElement('p'); name.className = 'event-name'; name.textContent = event.name;
   const categoryName = document.createElement('p'); categoryName.className = 'event-category';
   categoryName.textContent = `${event.categoryName}${event.venue ? ` · ${event.venue}` : ''}`;
   item.append(name, categoryName); return item;
+}
+
+function categoryDisplayColor(category) {
+  return category?.code === 'center_classes'
+    ? CENTER_CLASS_COLOR
+    : (category?.color || '#315e78');
+}
+
+function eventDisplayColor(event, category) {
+  if (event.category === 'center_classes') return CENTER_CLASS_COLOR;
+  if (REGIONAL_CLASS_KEYWORDS.some(keyword => String(event.name || '').includes(keyword))) {
+    return REGIONAL_CLASS_COLOR;
+  }
+  return categoryDisplayColor(category);
 }
 
 function emptyMessage() {
