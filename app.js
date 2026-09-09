@@ -246,7 +246,20 @@ document.querySelectorAll('.region-tab').forEach(button => button.addEventListen
 }));
 document.querySelector('#previousMonth').addEventListener('click', () => changeMonth(-1));
 document.querySelector('#nextMonth').addEventListener('click', () => changeMonth(1));
-document.querySelector('#refreshButton').addEventListener('click', loadData);
+document.querySelector('#refreshButton').addEventListener('click', () => {
+  const button = document.querySelector('#refreshButton');
+  const label = button.querySelector('span');
+  button.classList.add('is-refreshing');
+  button.disabled = true;
+  button.setAttribute('aria-busy', 'true');
+  if (label) label.textContent = '更新中…';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  setTimeout(() => {
+    const cleanUrl = window.location.origin + window.location.pathname + '?refresh=' + Date.now();
+    window.location.replace(cleanUrl);
+  }, 450);
+});
 document.querySelector('#selectRegion').addEventListener('click', () => updateRegionSelection(true));
 document.querySelector('#clearRegion').addEventListener('click', () => updateRegionSelection(false));
 document.querySelector('#selectAll').addEventListener('click', () => {
