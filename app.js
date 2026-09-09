@@ -27,7 +27,8 @@ const state = {
 const elements = {
   filters: document.querySelector('#filters'), calendar: document.querySelector('#calendar'),
   status: document.querySelector('#status'), monthLabel: document.querySelector('#monthLabel'),
-  yearLabel: document.querySelector('#yearLabel'), regionDescription: document.querySelector('#regionDescription')
+  yearLabel: document.querySelector('#yearLabel'), regionDescription: document.querySelector('#regionDescription'),
+  searchSummary: document.querySelector('#searchSummary')
 };
 
 window.loadCalendarData = function (payload) {
@@ -132,11 +133,67 @@ function isCoreEvent(event) {
     (state.selected.has('all_classes') && event.isAllClass);
 }
 
+function getSearchExpression() {
+  const terms = [1, 2, 3].map(index =>
+    document.querySelector(`#keyword${index}`).value.trim().toLocaleLowerCase('zh-Hant')
+  );
+  const operators = {
+    1: 'AND',
+    2: document.querySelector('#operator2').value,
+    3: document.querySelector('#operator3').value
+  };
+  return { terms, operators };
+}
+
+function matchesAdvancedSearch(event) {
+  const { terms, operators } = getSearchExpression();
+  const activeTerms = terms
+    .map((term, index) => ({ term, position: index + 1 }))
+    .filter(item => item.term);
+  if (!activeTerms.length) return true;
+
+  const category = state.categories.find(item => item.code === event.category);
+  const haystack = [
+    event.name, event.date, event.dateDisplay, event.week, event.weekday, event.lunar,
+    event.venue, event.categoryName, category?.name, conciseEventLabel(event, category)
+  ].filter(Boolean).join(' ').toLocaleLowerCase('zh-Hant');
+
+  const orGroups = [];
+  activeTerms.forEach((item, index) => {
+    const matches = haystack.includes(item.term);
+    if (index === 0 || operators[item.position] === 'OR') {
+      orGroups.push([matches]);
+    } else {
+      orGroups[orGroups.length - 1].push(matches);
+    }
+  });
+  return orGroups.some(group => group.every(Boolean));
+}
+
+function updateSearchSummary(visibleCount) {
+  const { terms, operators } = getSearchExpression();
+  const active = terms
+    .map((term, index) => ({ term, position: index + 1 }))
+    .filter(item => item.term);
+  if (!active.length) {
+    elements.searchSummary.textContent = `目前月份显示 ${visibleCount} 笔活动。`;
+    return;
+  }
+  const expression = active.map((item, index) => {
+    if (!index) return `「${item.term}」`;
+    return `${operators[item.position] === 'AND' ? '且' : '或'} 「${item.term}」`;
+  }).join(' ');
+  elements.searchSummary.textContent = `检索：${expression}，找到 ${visibleCount} 笔活动。`;
+}
+
 function renderCalendar() {
   const [year, month] = state.month.split('-').map(Number);
   elements.yearLabel.textContent = `${year} 年`;
   elements.monthLabel.textContent = `${month} 月`;
-  const visible = state.events.filter(event => event.date.startsWith(state.month) && isVisible(event));
+  const visible = state.events.filter(event =>
+    event.date.startsWith(state.month) && isVisible(event) && matchesAdvancedSearch(event)
+  );
+  updateSearchSummary(visible.length);
   const grouped = Map.groupBy ? Map.groupBy(visible, event => event.date) : groupByDate(visible);
   const cards = [...grouped.entries()].sort(([a], [b]) => a.localeCompare(b))
     .map(([date, events]) => createDateCard(date, events));
@@ -269,5 +326,20 @@ document.querySelector('#selectAll').addEventListener('click', () => {
 });
 document.querySelector('#clearAll').addEventListener('click', () => {
   state.selected.clear(); renderFilters(); renderCalendar();
+});
+[1, 2, 3].forEach(index => {
+  document.querySelector(`#keyword${index}`).addEventListener('input', renderCalendar);
+});
+['#operator2', '#operator3'].forEach(selector => {
+  document.querySelector(selector).addEventListener('change', renderCalendar);
+});
+document.querySelector('#clearSearch').addEventListener('click', () => {
+  [1, 2, 3].forEach(index => {
+    document.querySelector(`#keyword${index}`).value = '';
+  });
+  document.querySelector('#operator2').value = 'AND';
+  document.querySelector('#operator3').value = 'AND';
+  renderCalendar();
+  document.querySelector('#keyword1').focus();
 });
 loadData();
