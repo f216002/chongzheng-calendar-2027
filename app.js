@@ -172,10 +172,12 @@ function createDateCard(date, events) {
 }
 
 function createEventColumn(title, className) {
-  const column = document.createElement('section'); column.className = `event-column ${className}`;
-  const heading = document.createElement('h3'); heading.className = 'event-column-title'; heading.textContent = title;
-  const list = document.createElement('div'); list.className = 'events';
-  column.append(heading, list);
+  const column = document.createElement('section');
+  column.className = `event-column ${className}`;
+  column.setAttribute('aria-label', title);
+  const list = document.createElement('div');
+  list.className = 'events';
+  column.append(list);
   return { column, list };
 }
 
