@@ -62,10 +62,10 @@ main { width: min(1180px, calc(100% - 2rem)); margin: 1.2rem auto 3rem; }
 .weekday { display: inline-block; margin-top: .35rem; padding: .15rem .5rem; color: white; background: var(--brand); border-radius: 999px; font-size: .8rem; }
 .lunar, .week { margin-top: .45rem; color: var(--muted); font-size: .82rem; }
 .events { display: grid; gap: .55rem; padding: .75rem; }
-.event { position: relative; padding: .7rem .75rem .7rem 1rem; border: 1px solid var(--line); border-radius: .65rem; background: white; }
-.event::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 5px; background: var(--event-color); border-radius: .65rem 0 0 .65rem; }
-.event-name { margin: 0; font-weight: 700; line-height: 1.55; white-space: pre-line; }
-.event-category { margin: .25rem 0 0; color: var(--muted); font-size: .8rem; }
+.event { position: relative; padding: .78rem .85rem .78rem 1.05rem; border: 1px solid color-mix(in srgb, var(--event-color), white 68%); border-radius: .65rem; background: linear-gradient(100deg, color-mix(in srgb, var(--event-color), white 91%), white 48%); }
+.event::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 6px; background: var(--event-color); border-radius: .65rem 0 0 .65rem; }
+.event-name { margin: 0; color: color-mix(in srgb, var(--event-color), #102f47 42%); font-weight: 800; line-height: 1.55; white-space: pre-line; }
+.event-category { display: inline-flex; align-items: center; margin: .38rem 0 0; padding: .18rem .5rem; color: color-mix(in srgb, var(--event-color), #102f47 35%); background: color-mix(in srgb, var(--event-color), white 87%); border: 1px solid color-mix(in srgb, var(--event-color), white 70%); border-radius: 999px; font-size: .78rem; font-weight: 650; }
 .empty { padding: 3rem 1rem; text-align: center; color: var(--muted); background: white; border: 1px dashed #bdccd4; border-radius: 1rem; }
 footer { padding: 1rem; text-align: center; color: var(--muted); font-size: .82rem; }
 
