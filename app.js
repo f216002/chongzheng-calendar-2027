@@ -14,8 +14,8 @@ const GLOBAL_CODES = new Set([
 ]);
 const GLOBAL_COLUMN_MAP = { O: 'indonesia', P: 'malaysia_group', Q: 'cambodia' };
 const REGION_DESCRIPTIONS = {
-  taiwan: '台灣道務中心與各地道場',
-  global: '全球道場與共同核心活動'
+  taiwan: '台灣道務中心與各單位道場',
+  global: '台灣道務中心與全球道場'
 };
 const REGIONAL_CLASS_KEYWORDS = [
   '南部進德班', '南部身心靈健康體驗營',
