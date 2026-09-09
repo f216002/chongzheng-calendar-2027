@@ -8,8 +8,18 @@
 body { margin: 0; background: var(--paper); color: var(--ink); }
 button { font: inherit; }
 .topbar { position: relative; display: flex; align-items: center; justify-content: center; min-height: 112px; padding: 1.1rem max(1rem, calc((100vw - 1420px) / 2)); color: white; text-align: center; background: linear-gradient(120deg, var(--brand-dark), var(--brand)); border-bottom: 4px solid var(--accent); }
-.topbar-title { position: absolute; left: 50%; width: calc(100% - 11rem); transform: translateX(-50%); }
-h1 { margin: 0; font-size: clamp(1.35rem, 3vw, 2rem); }
+.topbar-title {
+  position: absolute;
+  inset-inline: 0;
+  width: 100%;
+  padding: 0 11rem;
+  text-align: center;
+  pointer-events: none;
+}
+h1 {
+  margin: 0;
+  text-align: center;
+  font-size: clamp(1.35rem, 3vw, 2rem); }
 .icon-button, .month-button, .bulk-actions button { border: 1px solid rgba(255,255,255,.32); border-radius: .7rem; cursor: pointer; }
 .icon-button { position: absolute; right: max(1rem, calc((100vw - 1420px) / 2)); padding: .65rem .85rem; color: white; background: rgba(255,255,255,.1); }
 main { width: min(1420px, calc(100% - 2rem)); margin: 1.2rem auto 3rem; }
@@ -62,7 +72,10 @@ footer { padding: 1rem; text-align: center; color: var(--muted); font-size: .82r
 
 @media (max-width: 760px) {
   .topbar { min-height: 92px; }
-  .topbar-title { width: calc(100% - 7rem); }
+  .topbar-title {
+    width: 100%;
+    padding: 0 4.8rem;
+  }
   .icon-button span { display: none; }
   main { width: min(100% - 1rem, 1420px); margin-top: .5rem; }
   .control-heading { display: block; }
