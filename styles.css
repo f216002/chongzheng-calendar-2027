@@ -22,6 +22,15 @@ h1 {
   font-size: clamp(1.35rem, 3vw, 2rem); }
 .icon-button, .month-button, .bulk-actions button { border: 1px solid rgba(255,255,255,.32); border-radius: .7rem; cursor: pointer; }
 .icon-button { position: absolute; right: max(1rem, calc((100vw - 1420px) / 2)); padding: .65rem .85rem; color: white; background: rgba(255,255,255,.1); }
+.icon-button { transition: transform .12s ease, background-color .12s ease, opacity .12s ease, box-shadow .12s ease; }
+.icon-button:hover { background: rgba(255,255,255,.2); }
+.icon-button:active, .icon-button.is-refreshing {
+  transform: translateY(3px) scale(.98);
+  background: rgba(255,255,255,.06);
+  opacity: .7;
+  box-shadow: inset 0 3px 7px rgba(0,0,0,.22);
+}
+.icon-button:disabled { cursor: wait; }
 main { width: min(1420px, calc(100% - 2rem)); margin: 1.2rem auto 3rem; }
 .control-panel { padding: 1rem; background: var(--card); border: 1px solid var(--line); border-radius: 1rem; box-shadow: 0 8px 30px rgba(27,54,73,.06); }
 .control-heading, .region-toolbar { display: flex; justify-content: space-between; gap: 1rem; align-items: flex-start; }
