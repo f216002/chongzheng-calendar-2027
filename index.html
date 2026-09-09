@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="description" content="寶光崇正2027年度整合行事曆">
+  <title>寶光崇正2027年度整合行事曆</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">寶光崇正道務中心</p>
+      <h1>2027 年度整合行事曆</h1>
+    </div>
+    <button id="refreshButton" class="icon-button" type="button" aria-label="重新載入資料">↻ <span>更新資料</span></button>
+  </header>
+
+  <main>
+    <section class="control-panel" aria-labelledby="filterTitle">
+      <div class="control-heading">
+        <div>
+          <h2 id="filterTitle">選擇要查看的行事曆</h2>
+          <p>道務中心仙佛班與共同活動已預設開啟，各道場可自由搭配。</p>
+        </div>
+        <div class="bulk-actions">
+          <button id="selectAll" type="button">全選</button>
+          <button id="clearAll" type="button">全取消</button>
+        </div>
+      </div>
+      <div id="filters" class="filters" aria-live="polite"></div>
+    </section>
+
+    <section class="calendar-toolbar" aria-label="月份切換">
+      <button id="previousMonth" class="month-button" type="button" aria-label="上一個月">‹</button>
+      <div>
+        <p id="yearLabel" class="year-label"></p>
+        <h2 id="monthLabel"></h2>
+      </div>
+      <button id="nextMonth" class="month-button" type="button" aria-label="下一個月">›</button>
+    </section>
+
+    <div id="status" class="status">正在讀取最新行事曆…</div>
+    <section id="calendar" class="calendar" aria-live="polite"></section>
+  </main>
+
+  <footer>資料來源：寶光崇正道務中心 Google 試算表</footer>
+  <script src="app.js"></script>
+</body>
+</html>
