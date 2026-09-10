@@ -3,6 +3,11 @@
 const API_URL = 'https://script.google.com/macros/s/AKfycbx11UqmZ_apamVa7FU5Dp46G9DNddfIeHaohjYFrasLNaZ0QcmDmIl2ZYVmOGihET44/exec';
 const CENTER_CLASS_COLOR = '#922626';
 const REGIONAL_CLASS_COLOR = '#D65A52';
+const DATA_CACHE_KEY = 'chongzheng-calendar-data-v2';
+const API_SLOW_NOTICE_MS = 8000;
+const API_TIMEOUT_MS = 30000;
+let apiSlowTimer = null;
+let apiTimeoutTimer = null;
 const CORE_CODES = new Set(['center_classes', 'shared', 'all_classes']);
 const TAIWAN_CODES = new Set([
   'center_classes', 'shared', 'all_classes', 'center_routine',
@@ -22,7 +27,8 @@ const REGIONAL_CLASS_KEYWORDS = [
   '北部身心靈健康體驗營', '北部進德班'
 ];
 const state = {
-  categories: [], events: [], selected: new Set(), month: null, activeRegion: 'taiwan'
+  categories: [], events: [], selected: new Set(), month: null,
+  activeRegion: 'taiwan', hasRendered: false
 };
 const elements = {
   filters: document.querySelector('#filters'), calendar: document.querySelector('#calendar'),
@@ -32,16 +38,58 @@ const elements = {
 };
 
 window.loadCalendarData = function (payload) {
-  if (!payload || !payload.success) return showError(payload?.error || '資料格式不正確');
+  clearApiTimers();
+  if (!payload || !payload.success) {
+    if (!state.hasRendered) showError(payload?.error || '資料格式不正確');
+    return;
+  }
+  applyCalendarData(payload, state.hasRendered);
+  saveCachedData(payload);
+};
+
+function applyCalendarData(payload, preserveView = false) {
   state.categories = [...payload.categories].map(normalizeCategory).sort((a, b) => a.order - b.order);
   state.events = payload.events.map(normalizeEvent).filter(event => event.date);
-  state.selected = new Set(state.categories.filter(item => item.defaultSelected).map(item => item.code));
-  const firstDate = state.events.map(item => item.date).sort()[0] || '2027-01-01';
-  state.month = firstDate.slice(0, 7);
+  if (!preserveView) {
+    state.selected = new Set(state.categories.filter(item => item.defaultSelected).map(item => item.code));
+    const firstDate = state.events.map(item => item.date).sort()[0] || '2027-01-01';
+    state.month = firstDate.slice(0, 7);
+  }
+  state.hasRendered = true;
   renderRegionTabs();
   renderFilters();
   renderCalendar();
-};
+}
+
+function saveCachedData(payload) {
+  try {
+    localStorage.setItem(DATA_CACHE_KEY, JSON.stringify({
+      savedAt: Date.now(),
+      payload
+    }));
+  } catch (error) {
+    console.warn('無法儲存本機行事曆快取：', error);
+  }
+}
+
+function loadCachedData() {
+  try {
+    const cached = JSON.parse(localStorage.getItem(DATA_CACHE_KEY) || 'null');
+    if (!cached?.payload?.success) return false;
+    applyCalendarData(cached.payload, false);
+    return true;
+  } catch (error) {
+    localStorage.removeItem(DATA_CACHE_KEY);
+    return false;
+  }
+}
+
+function clearApiTimers() {
+  clearTimeout(apiSlowTimer);
+  clearTimeout(apiTimeoutTimer);
+  apiSlowTimer = null;
+  apiTimeoutTimer = null;
+}
 
 function normalizeCategory(category) {
   const sourceColumn = String(category.sourceColumn || '').toUpperCase();
@@ -79,16 +127,35 @@ function cleanDisplayDate(value, lunar = false) {
   return lunar ? parts : `${date.getFullYear()}/${parts}`;
 }
 
-function loadData() {
-  elements.status.hidden = false;
-  elements.status.className = 'status';
-  elements.status.textContent = '正在讀取最新行事曆…';
+function loadData({ force = false, showLoading = !state.hasRendered } = {}) {
+  clearApiTimers();
+  if (showLoading) {
+    elements.status.hidden = false;
+    elements.status.className = 'status';
+    elements.status.textContent = '正在讀取最新行事曆…';
+  }
   document.querySelector('#calendarApi')?.remove();
   const script = document.createElement('script');
   script.id = 'calendarApi';
-  script.src = `${API_URL}?callback=loadCalendarData&t=${Date.now()}`;
-  script.onerror = () => showError('目前無法連接行事曆資料，請稍後再試。');
+  const refreshToken = force ? `&t=${Date.now()}` : '';
+  script.src = `${API_URL}?callback=loadCalendarData${refreshToken}`;
+  script.onerror = () => {
+    clearApiTimers();
+    if (!state.hasRendered) showError('目前無法連接行事曆資料，請稍後再試。');
+  };
   document.body.appendChild(script);
+
+  apiSlowTimer = setTimeout(() => {
+    if (!state.hasRendered) {
+      elements.status.textContent = 'Google 伺服器正在啟動，第一次載入可能較久，請稍候…';
+    }
+  }, API_SLOW_NOTICE_MS);
+
+  apiTimeoutTimer = setTimeout(() => {
+    if (!state.hasRendered) {
+      showError('资料读取逾时，请检查网络后点击右上角「更新资料」重试。');
+    }
+  }, API_TIMEOUT_MS);
 }
 
 function categoriesForRegion(region = state.activeRegion) {
@@ -351,4 +418,6 @@ document.querySelector('#clearSearch').addEventListener('click', () => {
   renderCalendar();
   document.querySelector('#keyword1').focus();
 });
-loadData();
+const hasCache = loadCachedData();
+const forceRefresh = new URLSearchParams(window.location.search).has('refresh');
+loadData({ force: forceRefresh, showLoading: !hasCache });
