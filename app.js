@@ -28,13 +28,21 @@ const REGIONAL_CLASS_KEYWORDS = [
 ];
 const state = {
   categories: [], events: [], selected: new Set(), month: null,
-  activeRegion: 'taiwan', hasRendered: false
+  activeRegion: 'taiwan', hasRendered: false,
+  speechDate: null
+};
+const speechState = {
+  queue: [], index: 0, playing: false, paused: false, lastYear: null
 };
 const elements = {
   filters: document.querySelector('#filters'), calendar: document.querySelector('#calendar'),
   status: document.querySelector('#status'), monthLabel: document.querySelector('#monthLabel'),
   yearLabel: document.querySelector('#yearLabel'), regionDescription: document.querySelector('#regionDescription'),
-  searchSummary: document.querySelector('#searchSummary')
+  searchSummary: document.querySelector('#searchSummary'),
+  speechStatus: document.querySelector('#speechStatus'),
+  speechPlay: document.querySelector('#speechPlay'),
+  speechPause: document.querySelector('#speechPause'),
+  speechStop: document.querySelector('#speechStop')
 };
 
 window.loadCalendarData = function (payload) {
@@ -257,18 +265,24 @@ function updateSearchSummary(visibleCount) {
   elements.searchSummary.textContent = `检索：${expression}，找到 ${visibleCount} 笔活动。`;
 }
 
+function getVisibleEvents() {
+  const searching = hasActiveSearch();
+  return state.events.filter(event =>
+    (searching || event.date.startsWith(state.month)) &&
+    isVisible(event) &&
+    matchesAdvancedSearch(event)
+  );
+}
+
 function renderCalendar() {
+  stopSpeech(false);
   const [year, month] = state.month.split('-').map(Number);
   const searching = hasActiveSearch();
   elements.yearLabel.textContent = searching ? '目前已勾選分類' : `${year} 年`;
   elements.monthLabel.textContent = searching ? '全年度搜尋結果' : `${month} 月`;
   document.querySelector('#previousMonth').disabled = searching;
   document.querySelector('#nextMonth').disabled = searching;
-  const visible = state.events.filter(event =>
-    (searching || event.date.startsWith(state.month)) &&
-    isVisible(event) &&
-    matchesAdvancedSearch(event)
-  );
+  const visible = getVisibleEvents();
   updateSearchSummary(visible.length);
   const grouped = Map.groupBy ? Map.groupBy(visible, event => event.date) : groupByDate(visible);
   const cards = [...grouped.entries()].sort(([a], [b]) => a.localeCompare(b))
@@ -285,6 +299,17 @@ function groupByDate(events) {
 
 function createDateCard(date, events) {
   const card = document.createElement('article'); card.className = 'date-card';
+  card.dataset.date = date;
+  card.tabIndex = 0;
+  card.setAttribute('aria-label', `選擇 ${date.replaceAll('-', '/')} 作為朗讀起點`);
+  card.classList.toggle('speech-selected', state.speechDate === date);
+  card.addEventListener('click', () => selectSpeechDate(date));
+  card.addEventListener('keydown', event => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      selectSpeechDate(date);
+    }
+  });
   const meta = document.createElement('div'); meta.className = 'date-meta';
   const time = document.createElement('time'); time.dateTime = date; time.textContent = date.replaceAll('-', '/');
   const weekday = document.createElement('span'); weekday.className = 'weekday'; weekday.textContent = events[0].weekday || '';
@@ -317,6 +342,7 @@ function createEventColumn(title, className) {
 function createEvent(event) {
   const category = state.categories.find(item => item.code === event.category);
   const item = document.createElement('div'); item.className = 'event';
+  item.dataset.eventId = String(event.id || event.event_id || `${event.date}-${event.order}-${event.name}`);
   item.style.setProperty('--event-color', eventDisplayColor(event, category));
   const name = document.createElement('p'); name.className = 'event-name'; name.textContent = event.name;
   const categoryName = document.createElement('p'); categoryName.className = 'event-category';
@@ -349,6 +375,176 @@ function eventDisplayColor(event, category) {
   return categoryDisplayColor(category);
 }
 
+function supportsSpeech() {
+  return 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window;
+}
+
+function selectSpeechDate(date, shouldScroll = false) {
+  state.speechDate = date;
+  document.querySelectorAll('.date-card').forEach(card => {
+    card.classList.toggle('speech-selected', card.dataset.date === date);
+  });
+  const card = [...document.querySelectorAll('.date-card')].find(item => item.dataset.date === date);
+  if (shouldScroll) card?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  elements.speechStatus.textContent = `朗讀起點：${date.replaceAll('-', '/')}。`;
+}
+
+function orderedSpeechDates() {
+  return [...new Set(getVisibleEvents().map(event => event.date))].sort();
+}
+
+function moveSpeechDate(offset) {
+  stopSpeech(false);
+  const dates = orderedSpeechDates();
+  if (!dates.length) {
+    elements.speechStatus.textContent = '目前沒有可朗讀的活動。';
+    return;
+  }
+  const current = state.speechDate && dates.includes(state.speechDate)
+    ? dates.indexOf(state.speechDate) : 0;
+  const next = Math.min(Math.max(current + offset, 0), dates.length - 1);
+  selectSpeechDate(dates[next], true);
+}
+
+function speechEventId(event) {
+  return String(event.id || event.event_id || `${event.date}-${event.order}-${event.name}`);
+}
+
+function buildSpeechQueue() {
+  const visible = getVisibleEvents();
+  const grouped = groupByDate(visible);
+  const dates = [...grouped.keys()].sort();
+  if (!dates.length) return [];
+  let start = state.speechDate && dates.includes(state.speechDate)
+    ? dates.indexOf(state.speechDate) : 0;
+  state.speechDate = dates[start];
+  const queue = [];
+  let previousYear = null;
+  dates.slice(start).forEach(date => {
+    const [year, month, day] = date.split('-').map(Number);
+    const dateText = previousYear === year
+      ? `${month}月${day}日`
+      : `${year}年${month}月${day}日`;
+    queue.push({ type: 'date', date, text: dateText });
+    previousYear = year;
+    const events = [...grouped.get(date)].sort((a, b) => {
+      const side = Number(isCoreEvent(a)) - Number(isCoreEvent(b));
+      return side ? -side : a.order - b.order;
+    });
+    events.forEach(event => queue.push({
+      type: 'event', date, eventId: speechEventId(event), text: String(event.name || '')
+    }));
+  });
+  return queue;
+}
+
+function preferredVoice() {
+  const voices = window.speechSynthesis.getVoices();
+  return voices.find(voice => /^zh[-_]TW/i.test(voice.lang)) ||
+    voices.find(voice => /^zh/i.test(voice.lang)) || null;
+}
+
+function clearSpeechHighlight() {
+  document.querySelectorAll('.speech-active').forEach(item => item.classList.remove('speech-active'));
+}
+
+function highlightSpeechItem(item) {
+  clearSpeechHighlight();
+  selectSpeechDate(item.date, false);
+  const card = [...document.querySelectorAll('.date-card')].find(node => node.dataset.date === item.date);
+  const target = item.type === 'date'
+    ? card?.querySelector('.date-meta')
+    : [...(card?.querySelectorAll('.event') || [])].find(node => node.dataset.eventId === item.eventId);
+  target?.classList.add('speech-active');
+  target?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function updateSpeechButtons() {
+  elements.speechPlay.textContent = speechState.playing ? '▶ 重新開始' : '▶ 開始朗讀';
+  elements.speechPause.disabled = !speechState.playing;
+  elements.speechStop.disabled = !speechState.playing;
+  elements.speechPause.textContent = speechState.paused ? '▶ 繼續' : 'Ⅱ 暫停';
+}
+
+function speakNext() {
+  if (!speechState.playing || speechState.paused) return;
+  if (speechState.index >= speechState.queue.length) {
+    speechState.playing = false;
+    speechState.paused = false;
+    clearSpeechHighlight();
+    elements.speechStatus.textContent = '朗讀完成。';
+    updateSpeechButtons();
+    return;
+  }
+  const item = speechState.queue[speechState.index];
+  highlightSpeechItem(item);
+  elements.speechStatus.textContent = item.type === 'date'
+    ? `正在朗讀日期：${item.text}`
+    : `正在朗讀：${item.text}`;
+  const utterance = new SpeechSynthesisUtterance(item.text);
+  utterance.lang = 'zh-TW';
+  utterance.rate = Number(document.querySelector('#speechRate').value || 0.9);
+  utterance.pitch = 1;
+  const voice = preferredVoice();
+  if (voice) utterance.voice = voice;
+  utterance.onend = () => {
+    if (!speechState.playing) return;
+    speechState.index += 1;
+    speakNext();
+  };
+  utterance.onerror = event => {
+    if (event.error === 'canceled' || event.error === 'interrupted') return;
+    stopSpeech(false);
+    elements.speechStatus.textContent = '瀏覽器語音暫時無法朗讀，請按「開始朗讀」重試。';
+  };
+  window.speechSynthesis.speak(utterance);
+}
+
+function startSpeech() {
+  if (!supportsSpeech()) {
+    elements.speechStatus.textContent = '此瀏覽器不支援語音朗讀，請改用最新版 Chrome、Edge 或 Safari。';
+    return;
+  }
+  window.speechSynthesis.cancel();
+  speechState.queue = buildSpeechQueue();
+  speechState.index = 0;
+  speechState.paused = false;
+  speechState.playing = speechState.queue.length > 0;
+  if (!speechState.playing) {
+    elements.speechStatus.textContent = '目前已勾選的分類與搜尋條件中沒有可朗讀的活動。';
+    updateSpeechButtons();
+    return;
+  }
+  selectSpeechDate(speechState.queue[0].date);
+  updateSpeechButtons();
+  setTimeout(speakNext, 80);
+}
+
+function toggleSpeechPause() {
+  if (!speechState.playing) return;
+  if (speechState.paused) {
+    speechState.paused = false;
+    window.speechSynthesis.resume();
+    elements.speechStatus.textContent = '繼續朗讀。';
+  } else {
+    speechState.paused = true;
+    window.speechSynthesis.pause();
+    elements.speechStatus.textContent = '朗讀已暫停。';
+  }
+  updateSpeechButtons();
+}
+
+function stopSpeech(showMessage = true) {
+  if (supportsSpeech()) window.speechSynthesis.cancel();
+  speechState.playing = false;
+  speechState.paused = false;
+  speechState.queue = [];
+  speechState.index = 0;
+  clearSpeechHighlight();
+  if (showMessage && elements.speechStatus) elements.speechStatus.textContent = '朗讀已停止。';
+  if (elements.speechPlay) updateSpeechButtons();
+}
+
 function emptyMessage() {
   const div = document.createElement('div'); div.className = 'empty';
   div.textContent = state.selected.size ? '本月在目前選擇的分類中沒有活動。' : '請先選擇至少一個行事曆分類。';
@@ -379,6 +575,12 @@ document.querySelectorAll('.region-tab').forEach(button => button.addEventListen
   resetToDefaultSelection();
   renderRegionTabs(); renderFilters(); renderCalendar();
 }));
+document.querySelector('#speechPlay').addEventListener('click', startSpeech);
+document.querySelector('#speechPause').addEventListener('click', toggleSpeechPause);
+document.querySelector('#speechStop').addEventListener('click', () => stopSpeech(true));
+document.querySelector('#speechPrevious').addEventListener('click', () => moveSpeechDate(-1));
+document.querySelector('#speechNext').addEventListener('click', () => moveSpeechDate(1));
+window.addEventListener('beforeunload', () => stopSpeech(false));
 document.querySelector('#previousMonth').addEventListener('click', () => changeMonth(-1));
 document.querySelector('#nextMonth').addEventListener('click', () => changeMonth(1));
 document.querySelector('#refreshButton').addEventListener('click', () => {
