@@ -7,7 +7,7 @@
   <title>寶光崇正2027年度全球行事曆</title>
   <link rel="preconnect" href="https://script.google.com">
   <link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=20260909-9">
+  <link rel="stylesheet" href="styles.css?v=20260911-1">
 </head>
 <body>
   <header class="topbar">
@@ -85,6 +85,32 @@
       </section>
     </section>
 
+    <section class="speech-panel" aria-labelledby="speechTitle">
+      <div class="speech-heading">
+        <div>
+          <h3 id="speechTitle">會議逐日朗讀</h3>
+          <p>點選任一日期或事件作為起點，依序朗讀日期、共同核心活動、各單位課程與活動。</p>
+        </div>
+        <label class="speech-rate">
+          <span>語速</span>
+          <select id="speechRate" aria-label="朗讀語速">
+            <option value="0.8">較慢</option>
+            <option value="0.9" selected>自然</option>
+            <option value="1">標準</option>
+            <option value="1.15">較快</option>
+          </select>
+        </label>
+      </div>
+      <div class="speech-actions" aria-label="朗讀控制">
+        <button id="speechPrevious" type="button">‹ 上一日</button>
+        <button id="speechPlay" class="speech-primary" type="button">▶ 開始朗讀</button>
+        <button id="speechPause" type="button" disabled>Ⅱ 暫停</button>
+        <button id="speechStop" type="button" disabled>■ 停止</button>
+        <button id="speechNext" type="button">下一日 ›</button>
+      </div>
+      <p id="speechStatus" class="speech-status" aria-live="polite">尚未選擇朗讀起點；按「開始朗讀」將由目前顯示的第一天開始。</p>
+    </section>
+
     <section class="calendar-toolbar" aria-label="月份切換">
       <button id="previousMonth" class="month-button" type="button" aria-label="上一個月">‹</button>
       <div>
@@ -103,6 +129,6 @@
   </main>
 
   <footer>資料來源：寶光崇正道務中心 Google 試算表</footer>
-  <script src="app.js?v=20260910-1"></script>
+  <script src="app.js?v=20260911-1"></script>
 </body>
 </html>
