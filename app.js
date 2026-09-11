@@ -42,7 +42,10 @@ const elements = {
   speechStatus: document.querySelector('#speechStatus'),
   speechPlay: document.querySelector('#speechPlay'),
   speechPause: document.querySelector('#speechPause'),
-  speechStop: document.querySelector('#speechStop')
+  speechStop: document.querySelector('#speechStop'),
+  filterScrollGuide: document.querySelector('#filterScrollGuide'),
+  filterScrollLeft: document.querySelector('#filterScrollLeft'),
+  filterScrollRight: document.querySelector('#filterScrollRight')
 };
 
 window.loadCalendarData = function (payload) {
@@ -197,6 +200,22 @@ function renderFilters() {
     wrapper.append(input, label);
     return wrapper;
   }));
+  elements.filters.scrollLeft = 0;
+  requestAnimationFrame(updateFilterScrollGuide);
+}
+
+function updateFilterScrollGuide() {
+  if (!elements.filterScrollGuide) return;
+  const maxScroll = Math.max(0, elements.filters.scrollWidth - elements.filters.clientWidth);
+  const canScroll = maxScroll > 3;
+  elements.filterScrollGuide.classList.toggle('is-hidden', !canScroll);
+  elements.filterScrollLeft.disabled = !canScroll || elements.filters.scrollLeft <= 3;
+  elements.filterScrollRight.disabled = !canScroll || elements.filters.scrollLeft >= maxScroll - 3;
+}
+
+function scrollFilters(direction) {
+  const distance = Math.max(220, elements.filters.clientWidth * 0.72);
+  elements.filters.scrollBy({ left: direction * distance, behavior: 'smooth' });
 }
 
 function isVisible(event) {
@@ -620,6 +639,10 @@ document.querySelectorAll('.region-tab').forEach(button => button.addEventListen
   resetToDefaultSelection();
   renderRegionTabs(); renderFilters(); renderCalendar();
 }));
+elements.filterScrollLeft?.addEventListener('click', () => scrollFilters(-1));
+elements.filterScrollRight?.addEventListener('click', () => scrollFilters(1));
+elements.filters.addEventListener('scroll', updateFilterScrollGuide, { passive: true });
+window.addEventListener('resize', updateFilterScrollGuide);
 document.querySelector('#speechPlay').addEventListener('click', startSpeech);
 document.querySelector('#speechPause').addEventListener('click', toggleSpeechPause);
 document.querySelector('#speechStop').addEventListener('click', () => stopSpeech(true));

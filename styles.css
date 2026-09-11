@@ -162,3 +162,67 @@ footer { padding: 1rem; text-align: center; color: var(--muted); font-size: .82r
   #speechPause { grid-column: 1 / 2; }
   #speechStop { grid-column: 2 / 4; }
 }
+
+
+/* 手機版分類橫向滑動提示與輔助按鈕 */
+.filter-scroll-guide { display: none; }
+
+@media (max-width: 760px) {
+  .filter-scroll-guide {
+    display: flex;
+    align-items: center;
+    gap: .55rem;
+    margin-top: .72rem;
+    color: var(--muted);
+  }
+  .filter-scroll-guide.is-hidden { display: none; }
+  .filter-scroll-arrow {
+    flex: 0 0 38px;
+    width: 38px;
+    height: 38px;
+    padding: 0;
+    color: var(--brand);
+    background: #f7fafc;
+    border: 1px solid #b9cad5;
+    border-radius: 999px;
+    cursor: pointer;
+    font-size: 1.55rem;
+    line-height: 1;
+    transition: opacity .15s ease, transform .12s ease, background-color .15s ease;
+  }
+  .filter-scroll-arrow:active:not(:disabled) {
+    transform: translateY(2px);
+    background: #e7f1f6;
+  }
+  .filter-scroll-arrow:disabled {
+    opacity: .25;
+    cursor: default;
+  }
+  .filter-scroll-message {
+    display: flex;
+    flex: 1;
+    min-width: 0;
+    align-items: center;
+    gap: .45rem;
+    color: #6a7e8d;
+    font-size: .78rem;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  .filter-scroll-line {
+    height: 1px;
+    flex: 1;
+    min-width: 12px;
+    background: #bfd0da;
+  }
+  .filters {
+    margin-top: .42rem;
+    scroll-behavior: smooth;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+    overscroll-behavior-inline: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+  .filters::-webkit-scrollbar { display: none; }
+  .filter-chip { scroll-snap-align: start; }
+}
