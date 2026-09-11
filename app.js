@@ -438,6 +438,22 @@ function buildSpeechQueue() {
   return queue;
 }
 
+function prepareSpeechText(value) {
+  let text = String(value || '');
+
+  // 普遍朗讀規則：數字與數字之間的連字號讀作「至」。
+  // 使用前瞻保留後一個數字，因此 1-2-3 也能依序讀成 1至2至3。
+  text = text.replace(/(\d)\s*[-－–—]\s*(?=\d)/g, '$1至');
+
+  // 中文字後面的連字號讀作「之」，例如「第15期-49」。
+  text = text.replace(/([\u3400-\u9fff])\s*[-－–—]\s*/gu, '$1之');
+
+  // 瀏覽器常把「連假」的「假」誤讀為第三聲；語音層改用同音字強制第四聲。
+  text = text.replace(/連假/g, '連駕');
+
+  return text;
+}
+
 function preferredVoice() {
   const voices = window.speechSynthesis.getVoices();
   return voices.find(voice => /^zh[-_]TW/i.test(voice.lang)) ||
@@ -481,7 +497,7 @@ function speakNext() {
   elements.speechStatus.textContent = item.type === 'date'
     ? `正在朗讀日期：${item.text}`
     : `正在朗讀：${item.text}`;
-  const utterance = new SpeechSynthesisUtterance(item.text);
+  const utterance = new SpeechSynthesisUtterance(prepareSpeechText(item.text));
   utterance.lang = 'zh-TW';
   utterance.rate = Number(document.querySelector('#speechRate').value || 0.9);
   utterance.pitch = 1;
