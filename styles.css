@@ -1109,3 +1109,37 @@ footer {
     padding-inline: 8px;
   }
 }
+
+
+/* 手機版：字體控制與本區操作按鈕左右置中 */
+@media (max-width: 760px) {
+  .font-size-controls {
+    justify-self: center;
+    margin-right: auto;
+    margin-left: auto;
+  }
+
+  .region-toolbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+    gap: 0.7rem;
+  }
+
+  .region-toolbar > p {
+    width: 100%;
+    margin-right: 0;
+    text-align: left;
+  }
+
+  .region-toolbar .bulk-actions {
+    width: 100%;
+    margin-left: 0;
+    justify-content: center;
+  }
+
+  .region-toolbar .bulk-actions button {
+    min-width: 96px;
+    text-align: center;
+  }
+}
