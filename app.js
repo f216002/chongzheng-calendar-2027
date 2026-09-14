@@ -46,7 +46,6 @@ const elements = {
   filters: document.querySelector('#filters'), calendar: document.querySelector('#calendar'),
   status: document.querySelector('#status'), monthLabel: document.querySelector('#monthLabel'),
   yearLabel: document.querySelector('#yearLabel'), regionDescription: document.querySelector('#regionDescription'),
-  searchSummary: document.querySelector('#searchSummary'),
   speechStatus: document.querySelector('#speechStatus'),
   speechPlay: document.querySelector('#speechPlay'),
   speechPause: document.querySelector('#speechPause'),
@@ -316,22 +315,6 @@ function matchesAdvancedSearch(event) {
   return firstMatches && secondMatches;
 }
 
-function updateSearchSummary(visibleCount) {
-  const { terms, operator } = getSearchExpression();
-  const [firstTerm, secondTerm] = terms;
-  if (!firstTerm && !secondTerm) {
-    elements.searchSummary.textContent = `目前月份顯示 ${visibleCount} 筆活動。`;
-    return;
-  }
-  const operatorLabel = { AND: '且', OR: '或', EXCLUDED: '除' }[operator] || '且';
-  const expression = firstTerm && secondTerm
-    ? `「${firstTerm}」${operatorLabel}「${secondTerm}」`
-    : operator === 'EXCLUDED' && secondTerm
-      ? `排除「${secondTerm}」`
-      : `「${firstTerm || secondTerm}」`;
-  elements.searchSummary.textContent = `檢索：${expression}，找到 ${visibleCount} 筆活動。`;
-}
-
 function getVisibleEvents() {
   const searching = hasActiveSearch();
   return state.events.filter(event =>
@@ -350,7 +333,6 @@ function renderCalendar() {
   document.querySelector('#previousMonth').disabled = searching;
   document.querySelector('#nextMonth').disabled = searching;
   const visible = getVisibleEvents();
-  updateSearchSummary(visible.length);
   const grouped = Map.groupBy ? Map.groupBy(visible, event => event.date) : groupByDate(visible);
   const cards = [...grouped.entries()].sort(([a], [b]) => a.localeCompare(b))
     .map(([date, events]) => createDateCard(date, events));
