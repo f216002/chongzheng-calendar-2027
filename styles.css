@@ -40,7 +40,6 @@ main { width: min(1420px, calc(100% - 2rem)); margin: 1.2rem auto 3rem; }
 .region-toolbar p { margin: 0; color: var(--muted); }
 .bulk-actions { display: flex; gap: .5rem; flex: none; }
 .bulk-actions button { padding: .5rem .75rem; color: var(--brand); background: white; border-color: #b9cad5; }
-.total-actions button { font-weight: 750; }
 .region-tabs { display: grid; grid-template-columns: repeat(2, minmax(120px, 220px)); gap: .55rem; margin-top: .65rem; padding-bottom: .65rem; border-bottom: 1px solid var(--line); }
 .region-tab { padding: .68rem 1rem; border: 1px solid #b9cad5; border-radius: .75rem; color: var(--brand); background: #f7fafc; cursor: pointer; font-weight: 800; }
 .region-tab.active { color: white; border-color: var(--brand); background: var(--brand); box-shadow: 0 4px 14px rgba(23,78,117,.2); }
@@ -100,7 +99,6 @@ footer { padding: 1rem; text-align: center; color: var(--muted); font-size: .82r
   .icon-button span { display: none; }
   main { width: min(100% - 1rem, 1420px); margin-top: .5rem; }
   .control-heading { display: block; }
-  .total-actions { margin-top: .8rem; }
   .region-tabs { grid-template-columns: 1fr 1fr; }
   .region-toolbar { align-items: flex-start; }
   .region-toolbar p { font-size: .86rem; }
@@ -676,11 +674,6 @@ footer {
     grid-column: 1 / -1;
     min-width: 0;
   }
-  .total-actions {
-    grid-column: 1;
-    align-self: end;
-    margin-top: .15rem;
-  }
   .font-size-controls {
     grid-column: 2;
     display: grid;
@@ -742,11 +735,6 @@ footer {
     min-width: 0;
     flex-wrap: wrap;
   }
-  .total-actions button {
-    padding: 8px 10px;
-    font-size: 15px;
-    white-space: nowrap;
-  }
   .region-toolbar {
     flex-wrap: wrap;
   }
@@ -789,9 +777,6 @@ footer {
   .control-heading {
     grid-template-columns: 1fr;
   }
-  .total-actions {
-    grid-column: 1;
-  }
   .font-size-controls {
     grid-column: 1;
     justify-self: end;
@@ -801,7 +786,7 @@ footer {
 
 /* =========================================================
    手機版頂部控制列重排 2026-09-14
-   第一排：台灣／全球／總全選／總取消
+   第一排：台灣／全球
    第二排：字體大小與縮放控制
    ========================================================= */
 @media (max-width: 760px) {
@@ -821,9 +806,10 @@ footer {
   }
 
   .region-tabs {
-    grid-column: 1;
+    grid-column: 1 / -1;
     grid-row: 2;
     align-self: center;
+    justify-self: center;
     display: flex;
     width: max-content;
     max-width: 100%;
@@ -841,25 +827,6 @@ footer {
     padding: 8px 12px;
     border-radius: .65rem;
     font-size: 15px;
-    white-space: nowrap;
-  }
-
-  .total-actions {
-    grid-column: 2;
-    grid-row: 2;
-    align-self: center;
-    justify-self: end;
-    flex-wrap: nowrap;
-    gap: 6px;
-    margin: .75rem 0 0;
-  }
-
-  .total-actions button {
-    flex: 0 0 auto;
-    min-height: 44px;
-    padding: 8px;
-    border-radius: .65rem;
-    font-size: 14px;
     white-space: nowrap;
   }
 
@@ -916,14 +883,6 @@ footer {
     font-size: 14px;
   }
 
-  .total-actions {
-    gap: 4px;
-  }
-
-  .total-actions button {
-    padding-inline: 6px;
-    font-size: 13px;
-  }
 }
 
 

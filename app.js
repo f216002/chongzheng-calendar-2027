@@ -718,12 +718,6 @@ document.querySelector('#refreshButton').addEventListener('click', () => {
 });
 document.querySelector('#selectRegion').addEventListener('click', () => updateRegionSelection(true));
 document.querySelector('#clearRegion').addEventListener('click', () => updateRegionSelection(false));
-document.querySelector('#selectAll').addEventListener('click', () => {
-  state.selected = new Set(state.categories.map(item => item.code)); renderFilters(); renderCalendar();
-});
-document.querySelector('#clearAll').addEventListener('click', () => {
-  state.selected.clear(); renderFilters(); renderCalendar();
-});
 [1, 2].forEach(index => {
   document.querySelector(`#keyword${index}`).addEventListener('input', renderCalendar);
 });
