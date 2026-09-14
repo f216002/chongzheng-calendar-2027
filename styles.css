@@ -934,3 +934,231 @@ footer {
     font-size: 13px;
   }
 }
+
+
+/* =========================================================
+   手機版版面精修與莊嚴配色 2026-09-14
+   1. Banner 固定單行標題
+   2. 地區頁籤金色選取狀態
+   3. 字體控制置中
+   4. 本區操作置中
+   5. 深青藍與典雅金配色
+   ========================================================= */
+:root {
+  --ink: #102f47;
+  --muted: #526d7e;
+  --paper: #edf4f6;
+  --card: #ffffff;
+  --line: #cfdee4;
+  --brand: #075d70;
+  --brand-dark: #082f4a;
+  --accent: #d2a43b;
+  --sky: #318cab;
+  --mint: #247f78;
+}
+
+body {
+  background:
+    radial-gradient(circle at 9% 8%, rgba(35,111,139,.11), transparent 25rem),
+    radial-gradient(circle at 92% 18%, rgba(36,127,120,.09), transparent 27rem),
+    linear-gradient(180deg, #f5f9fa 0%, #edf4f6 54%, #e7f0f2 100%);
+}
+
+.topbar {
+  background:
+    radial-gradient(circle at 77% 14%, rgba(218,178,77,.17), transparent 12rem),
+    linear-gradient(120deg, #082f4a 0%, #075d70 57%, #247f78 100%);
+  border-bottom-color: #d2a43b;
+  box-shadow: 0 9px 30px rgba(7,49,69,.22);
+}
+
+.control-panel {
+  border-top-color: #cfa13b;
+  box-shadow:
+    0 15px 42px rgba(19,66,84,.105),
+    0 2px 8px rgba(19,66,84,.055);
+}
+
+.control-heading h2,
+.search-heading h3,
+.speech-heading h3,
+.calendar-toolbar h2,
+.date-meta time {
+  color: #083f5d;
+}
+
+.control-heading h2::before,
+.search-heading h3::before,
+.speech-heading h3::before {
+  background: linear-gradient(180deg, #cfa13b, #8c681d);
+}
+
+.bulk-actions button,
+.clear-search,
+.speech-actions button {
+  color: #0a506b;
+  border-color: #aac5cf;
+}
+
+.filter-chip input:checked + label {
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--chip-color), #173246 5%),
+    color-mix(in srgb, var(--chip-color), white 14%)
+  );
+}
+
+.speech-panel {
+  border-top-color: #cfa13b;
+  background:
+    linear-gradient(110deg, rgba(217,177,75,.11), rgba(25,105,111,.045) 58%),
+    #ffffff;
+}
+
+.speech-actions .speech-primary,
+.month-button {
+  background: linear-gradient(130deg, #084f68, #147c78);
+  box-shadow: 0 7px 18px rgba(8,66,83,.2);
+}
+
+.weekday {
+  background: linear-gradient(120deg, #0b5f7d, #147c78);
+}
+
+.column-legend span,
+.event-column-title {
+  color: #405f70;
+  border-color: #cbdde3;
+  background: linear-gradient(90deg, #edf4f6, #f5f8f6);
+}
+
+@media (max-width: 760px) {
+  /* Banner 不受内建字體比例影響，始終保持單行與固定高度 */
+  .topbar {
+    min-height: 96px;
+    height: 96px;
+    padding: 12px 8px;
+  }
+
+  .topbar-title {
+    inset: 0 70px 0 8px;
+    display: flex;
+    width: auto;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+  }
+
+  .topbar-title h1 {
+    max-width: 100%;
+    font-size: clamp(13px, 4.15vw, 17px);
+    line-height: 1.15;
+    letter-spacing: 0;
+    white-space: nowrap;
+    overflow-wrap: normal;
+  }
+
+  .topbar-title h1::after {
+    left: 12%;
+    right: 12%;
+    bottom: -8px;
+  }
+
+  .icon-button {
+    right: 10px;
+    width: 48px;
+    height: 48px;
+    padding: 0;
+    font-size: 22px;
+  }
+
+  /* 第一排四個按鈕整組置中，台灣與全球適度加寬 */
+  .control-panel {
+    grid-template-columns: max-content max-content;
+    justify-content: center;
+    column-gap: 10px;
+  }
+
+  .region-tabs {
+    width: max-content;
+  }
+
+  .region-tab {
+    width: 76px;
+    padding-inline: 12px;
+    color: #16465a;
+    background: linear-gradient(180deg, #ffffff, #edf4f6);
+  }
+
+  .region-tab.active {
+    color: #3f2c04;
+    border-color: #c6962d;
+    background: linear-gradient(135deg, #d3a337, #f0ca6a);
+    box-shadow:
+      0 7px 18px rgba(159,112,20,.25),
+      inset 0 1px 0 rgba(255,255,255,.42);
+    text-shadow: none;
+  }
+
+  .region-tab:hover {
+    background: #f7ecd0;
+  }
+
+  .region-tab.active:hover {
+    background: linear-gradient(135deg, #c99931, #e9bd55);
+  }
+
+  /* 字體控制獨立一排並水平置中 */
+  .font-size-controls {
+    justify-self: center;
+    margin-top: .55rem;
+  }
+
+  .font-size-button {
+    color: #075d70;
+    border-color: #9fbfc9;
+    background: linear-gradient(180deg, #ffffff, #eaf2f4);
+  }
+
+  /* 各區標題及全選／取消皆置中 */
+  .region-toolbar {
+    display: grid;
+    grid-template-columns: 1fr;
+    justify-items: center;
+    gap: .7rem;
+    margin-top: 1rem;
+  }
+
+  .region-toolbar > p {
+    width: 100%;
+    flex: none;
+    text-align: center;
+  }
+
+  .region-toolbar .bulk-actions {
+    width: 100%;
+    justify-content: center;
+    margin-left: 0;
+  }
+
+  .region-toolbar .bulk-actions button {
+    min-width: 96px;
+    min-height: 44px;
+    font-weight: 750;
+  }
+
+  .filter-scroll-arrow {
+    color: #075d70;
+  }
+}
+
+@media (max-width: 350px) {
+  .control-panel {
+    column-gap: 6px;
+  }
+
+  .region-tab {
+    width: 62px;
+    padding-inline: 7px;
+  }
+}
