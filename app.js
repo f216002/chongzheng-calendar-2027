@@ -1,8 +1,8 @@
 'use strict';
 
 const API_URL = 'https://script.google.com/macros/s/AKfycbx11UqmZ_apamVa7FU5Dp46G9DNddfIeHaohjYFrasLNaZ0QcmDmIl2ZYVmOGihET44/exec';
-const CENTER_CLASS_COLOR = '#922626';
-const REGIONAL_CLASS_COLOR = '#D65A52';
+const CENTER_CLASS_COLOR = '#B52D3A';
+const REGIONAL_CLASS_COLOR = '#EC625D';
 const DATA_CACHE_KEY = 'chongzheng-calendar-data-v2';
 const API_SLOW_NOTICE_MS = 8000;
 const API_TIMEOUT_MS = 30000;

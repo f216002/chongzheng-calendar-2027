@@ -226,3 +226,418 @@ footer { padding: 1rem; text-align: center; color: var(--muted); font-size: .82r
   .filters::-webkit-scrollbar { display: none; }
   .filter-chip { scroll-snap-align: start; }
 }
+
+
+/* =========================================================
+   視覺美編升級 2026-09-14
+   僅調整色彩、層次與排版觀感，不變更任何功能及結構
+   ========================================================= */
+:root {
+  --ink: #123b56;
+  --muted: #607b8d;
+  --paper: #f3f9fc;
+  --card: #ffffff;
+  --line: #d7e8ef;
+  --brand: #087f8c;
+  --brand-dark: #0b4f73;
+  --accent: #f1b94a;
+  --sky: #4fb4d8;
+  --mint: #44b9a7;
+}
+
+body {
+  background:
+    radial-gradient(circle at 8% 8%, rgba(79,180,216,.13), transparent 25rem),
+    radial-gradient(circle at 94% 18%, rgba(68,185,167,.11), transparent 28rem),
+    linear-gradient(180deg, #f8fcfe 0%, var(--paper) 52%, #eef7fa 100%);
+}
+
+/* 年度行事曆 Banner */
+.topbar {
+  isolation: isolate;
+  overflow: hidden;
+  min-height: 138px;
+  background:
+    radial-gradient(circle at 78% 16%, rgba(255,220,132,.22), transparent 12rem),
+    linear-gradient(120deg, #0b4f73 0%, #087f8c 55%, #35a99e 100%);
+  border-bottom: 5px solid var(--accent);
+  box-shadow: 0 8px 28px rgba(11,79,115,.18);
+}
+.topbar::before,
+.topbar::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  pointer-events: none;
+  border-radius: 50%;
+}
+.topbar::before {
+  width: 360px;
+  height: 360px;
+  left: -130px;
+  top: -205px;
+  border: 1px solid rgba(255,255,255,.24);
+  box-shadow:
+    0 0 0 36px rgba(255,255,255,.045),
+    0 0 0 76px rgba(255,255,255,.035);
+}
+.topbar::after {
+  width: 300px;
+  height: 300px;
+  right: -92px;
+  bottom: -230px;
+  border: 1px solid rgba(255,220,132,.38);
+  box-shadow:
+    0 0 0 34px rgba(255,220,132,.05),
+    0 0 0 70px rgba(255,255,255,.035);
+}
+.topbar-title {
+  z-index: 1;
+}
+.topbar-title h1 {
+  display: inline-block;
+  position: relative;
+  letter-spacing: .045em;
+  text-shadow: 0 3px 16px rgba(1,39,57,.3);
+}
+.topbar-title h1::after {
+  content: "";
+  position: absolute;
+  left: 18%;
+  right: 18%;
+  bottom: -.6rem;
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, #ffe09a, transparent);
+}
+.icon-button {
+  z-index: 2;
+  border-color: rgba(255,255,255,.55);
+  background: rgba(255,255,255,.16);
+  box-shadow: 0 6px 18px rgba(4,48,65,.14);
+  backdrop-filter: blur(8px);
+}
+.icon-button:hover {
+  background: rgba(255,255,255,.27);
+}
+
+/* 主要控制區 */
+main {
+  margin-top: 1.55rem;
+}
+.control-panel,
+.speech-panel {
+  border-color: rgba(152,195,211,.55);
+  box-shadow:
+    0 14px 40px rgba(32,93,119,.08),
+    0 2px 8px rgba(32,93,119,.04);
+}
+.control-panel {
+  position: relative;
+  overflow: hidden;
+  padding: 1.25rem;
+  border-top: 4px solid #4fb4d8;
+}
+.control-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 72px;
+  pointer-events: none;
+  background: linear-gradient(100deg, rgba(79,180,216,.08), rgba(68,185,167,.045), transparent 65%);
+}
+.control-heading,
+.region-tabs,
+.region-toolbar,
+.filters,
+.advanced-search {
+  position: relative;
+}
+.control-heading h2,
+.search-heading h3,
+.speech-heading h3 {
+  color: #0a5376;
+  letter-spacing: .02em;
+}
+.control-heading h2::before,
+.search-heading h3::before,
+.speech-heading h3::before {
+  content: "";
+  display: inline-block;
+  width: .34rem;
+  height: 1em;
+  margin-right: .48rem;
+  vertical-align: -.1em;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #34aeb0, #4c9fe0);
+}
+.control-heading p,
+.region-toolbar p,
+.search-heading p,
+.speech-heading p {
+  color: #647f91;
+}
+
+/* 按鈕 */
+.bulk-actions button,
+.clear-search,
+.speech-actions button,
+.month-button {
+  border-color: #b8d5df;
+  color: #0d6284;
+  background: linear-gradient(180deg, #ffffff, #f4fafc);
+  box-shadow: 0 2px 7px rgba(40,105,130,.06);
+  transition: transform .12s ease, border-color .15s ease, background-color .15s ease, box-shadow .15s ease;
+}
+.bulk-actions button:hover,
+.clear-search:hover,
+.speech-actions button:hover:not(:disabled),
+.month-button:hover:not(:disabled) {
+  border-color: #72b7cd;
+  background: #eaf7fb;
+  box-shadow: 0 5px 14px rgba(40,105,130,.11);
+}
+.bulk-actions button:active,
+.clear-search:active,
+.month-button:active:not(:disabled) {
+  transform: translateY(2px);
+}
+
+/* 台灣／全球頁籤 */
+.region-tabs {
+  gap: .7rem;
+  padding-top: .15rem;
+}
+.region-tab {
+  min-height: 52px;
+  border-color: #b8d5df;
+  color: #176686;
+  background: linear-gradient(180deg, #ffffff, #f0f8fb);
+  transition: transform .14s ease, box-shadow .18s ease, background .18s ease;
+}
+.region-tab:hover {
+  transform: translateY(-1px);
+  border-color: #75bcd0;
+  background: #effbfc;
+}
+.region-tab.active {
+  border-color: transparent;
+  background: linear-gradient(125deg, #0876a1, #11979c);
+  box-shadow: 0 8px 20px rgba(8,127,140,.22);
+}
+.region-toolbar p {
+  font-weight: 700;
+}
+.region-toolbar p::before {
+  content: "";
+  display: inline-block;
+  width: .55rem;
+  height: .55rem;
+  margin-right: .42rem;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 4px rgba(241,185,74,.15);
+}
+
+/* 分類膠囊：保持分類色，但提高明亮度 */
+.filter-chip label {
+  min-height: 44px;
+  border-color: #d4e5eb;
+  color: #174c68;
+  background: rgba(255,255,255,.88);
+  box-shadow: 0 2px 8px rgba(41,95,116,.045);
+  transition: transform .13s ease, box-shadow .16s ease, background .16s ease;
+}
+.filter-chip label:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--chip-color), white 50%);
+  background: color-mix(in srgb, var(--chip-color), white 94%);
+  box-shadow: 0 6px 15px rgba(41,95,116,.09);
+}
+.filter-chip input:checked + label {
+  color: white;
+  border-color: color-mix(in srgb, var(--chip-color), white 15%);
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--chip-color), white 10%),
+    color-mix(in srgb, var(--chip-color), white 24%)
+  );
+  box-shadow:
+    0 7px 18px color-mix(in srgb, var(--chip-color), transparent 72%),
+    inset 0 1px 0 rgba(255,255,255,.22);
+  text-shadow: 0 1px 2px rgba(0,0,0,.12);
+}
+
+/* 搜尋區 */
+.advanced-search {
+  margin-top: 1.2rem;
+  padding: 1.05rem;
+  border: 1px solid #d8ebf1;
+  border-radius: .85rem;
+  background:
+    linear-gradient(120deg, rgba(79,180,216,.075), rgba(68,185,167,.045)),
+    #fbfdfe;
+}
+.search-term input,
+.search-operator select,
+.speech-rate select {
+  border-color: #b8d5df;
+  background: rgba(255,255,255,.95);
+  box-shadow: inset 0 1px 2px rgba(20,73,96,.035);
+}
+.search-term input:focus,
+.search-operator select:focus,
+.speech-rate select:focus {
+  outline: 3px solid rgba(79,180,216,.24);
+  border-color: #43a8c7;
+}
+.search-summary {
+  color: #087f8c;
+}
+
+/* 朗讀區 */
+.speech-panel {
+  position: relative;
+  overflow: hidden;
+  border-top: 4px solid var(--accent);
+  background:
+    linear-gradient(110deg, rgba(255,233,178,.13), rgba(80,184,195,.045) 58%),
+    white;
+}
+.speech-actions .speech-primary {
+  border-color: transparent;
+  background: linear-gradient(125deg, #0876a1, #11979c);
+  box-shadow: 0 6px 16px rgba(8,127,140,.2);
+}
+.speech-actions .speech-primary:hover:not(:disabled) {
+  background: linear-gradient(125deg, #096a91, #0d888e);
+}
+
+/* 月份及日期卡片 */
+.calendar-toolbar {
+  margin-top: 1.8rem;
+}
+.calendar-toolbar h2 {
+  color: #0b5477;
+  font-size: 1.75rem;
+}
+.year-label {
+  color: #6a8191;
+}
+.month-button {
+  border-radius: 999px;
+  color: white;
+  border-color: transparent;
+  background: linear-gradient(145deg, #3fa8d0, #087f8c);
+  box-shadow: 0 7px 18px rgba(8,127,140,.18);
+}
+.column-legend span {
+  margin: 0 .35rem;
+  padding: .42rem .6rem;
+  border: 1px solid #d6e8ee;
+  border-radius: .55rem;
+  background: rgba(255,255,255,.78);
+}
+.date-card {
+  border-color: #d3e5ec;
+  box-shadow: 0 8px 24px rgba(32,93,119,.07);
+  transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+}
+.date-card:hover {
+  border-color: #b5d8e3;
+  box-shadow: 0 12px 30px rgba(32,93,119,.11);
+}
+.date-meta {
+  background:
+    linear-gradient(145deg, rgba(79,180,216,.18), rgba(68,185,167,.10)),
+    #f3fafc;
+}
+.date-meta time {
+  color: #0b5477;
+}
+.weekday {
+  background: linear-gradient(120deg, #1787b1, #0f9d99);
+  box-shadow: 0 3px 8px rgba(8,127,140,.16);
+}
+.event-column-title {
+  color: #477286;
+  background: linear-gradient(90deg, #eef8fb, #f4faf9);
+}
+.event {
+  border-color: color-mix(in srgb, var(--event-color), white 62%);
+  background:
+    linear-gradient(105deg, color-mix(in srgb, var(--event-color), white 88%), #ffffff 60%);
+  box-shadow: 0 3px 10px color-mix(in srgb, var(--event-color), transparent 91%);
+}
+.event::before {
+  width: 7px;
+}
+.event-category {
+  background: color-mix(in srgb, var(--event-color), white 84%);
+}
+.empty,
+.status.error {
+  border-color: #c9e1e9;
+}
+footer {
+  color: #6f8796;
+}
+
+@media (max-width: 760px) {
+  .topbar {
+    min-height: 112px;
+  }
+  .topbar::before {
+    width: 250px;
+    height: 250px;
+    left: -115px;
+    top: -150px;
+  }
+  .topbar::after {
+    width: 220px;
+    height: 220px;
+    right: -100px;
+    bottom: -165px;
+  }
+  .topbar-title h1 {
+    letter-spacing: .015em;
+    line-height: 1.32;
+  }
+  .topbar-title h1::after {
+    bottom: -.38rem;
+  }
+  main {
+    margin-top: .8rem;
+  }
+  .control-panel,
+  .speech-panel {
+    border-radius: .9rem;
+  }
+  .control-panel {
+    padding: 1rem;
+  }
+  .advanced-search {
+    margin-inline: -.15rem;
+    padding: .9rem;
+  }
+  .region-tab {
+    min-height: 50px;
+  }
+  .filter-chip label {
+    min-height: 46px;
+  }
+  .date-card:hover {
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: .01ms !important;
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
