@@ -934,3 +934,30 @@ footer {
     font-size: 13px;
   }
 }
+
+
+/* 手機版 Banner 標題固定：不受無障礙字體放大縮小控制影響 */
+@media (max-width: 760px) {
+  .topbar-title {
+    padding-inline: 0.75rem;
+  }
+
+  .topbar-title h1 {
+    max-width: 100%;
+    font-size: clamp(15px, 4.6vw, 18px);
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow-wrap: normal;
+  }
+}
+
+@media (max-width: 360px) {
+  .topbar-title {
+    padding-right: 4.2rem;
+    padding-left: 0.5rem;
+  }
+
+  .topbar-title h1 {
+    font-size: 14px;
+  }
+}
