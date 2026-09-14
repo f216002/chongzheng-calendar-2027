@@ -806,3 +806,131 @@ footer {
     justify-self: end;
   }
 }
+
+
+/* =========================================================
+   手機版頂部控制列重排 2026-09-14
+   第一排：台灣／全球／總全選／總取消
+   第二排：字體大小與縮放控制
+   ========================================================= */
+@media (max-width: 760px) {
+  .control-panel {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    column-gap: 10px;
+  }
+
+  .control-heading {
+    display: contents;
+  }
+
+  .control-heading > div:first-child {
+    grid-column: 1 / -1;
+    grid-row: 1;
+  }
+
+  .region-tabs {
+    grid-column: 1;
+    grid-row: 2;
+    align-self: center;
+    display: flex;
+    width: max-content;
+    max-width: 100%;
+    gap: 6px;
+    margin: .75rem 0 0;
+    padding: 0;
+    border-bottom: 0;
+  }
+
+  .region-tab {
+    flex: 0 0 auto;
+    width: auto;
+    min-width: 0;
+    min-height: 44px;
+    padding: 8px 12px;
+    border-radius: .65rem;
+    font-size: 15px;
+    white-space: nowrap;
+  }
+
+  .total-actions {
+    grid-column: 2;
+    grid-row: 2;
+    align-self: center;
+    justify-self: end;
+    flex-wrap: nowrap;
+    gap: 6px;
+    margin: .75rem 0 0;
+  }
+
+  .total-actions button {
+    flex: 0 0 auto;
+    min-height: 44px;
+    padding: 8px;
+    border-radius: .65rem;
+    font-size: 14px;
+    white-space: nowrap;
+  }
+
+  .font-size-controls {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    justify-self: end;
+    display: grid;
+    grid-template-columns: auto 44px 42px 44px;
+    grid-template-rows: 44px;
+    align-items: center;
+    gap: .3rem;
+    margin-top: .45rem;
+  }
+
+  .font-size-label {
+    grid-column: auto;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+
+  .region-toolbar {
+    grid-column: 1 / -1;
+    grid-row: 4;
+  }
+
+  .filter-scroll-guide {
+    grid-column: 1 / -1;
+    grid-row: 5;
+  }
+
+  .filters {
+    grid-column: 1 / -1;
+    grid-row: 6;
+  }
+
+  .advanced-search {
+    grid-column: 1 / -1;
+    grid-row: 7;
+  }
+}
+
+@media (max-width: 350px) {
+  .control-panel {
+    column-gap: 6px;
+  }
+
+  .region-tabs {
+    gap: 4px;
+  }
+
+  .region-tab {
+    padding-inline: 9px;
+    font-size: 14px;
+  }
+
+  .total-actions {
+    gap: 4px;
+  }
+
+  .total-actions button {
+    padding-inline: 6px;
+    font-size: 13px;
+  }
+}
