@@ -1143,3 +1143,108 @@ footer {
     text-align: center;
   }
 }
+
+
+/* 手機版：左右滑提示與全選／取消合併為置中同一橫排 */
+.region-action-row {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.6rem;
+}
+
+@media (max-width: 760px) {
+  .region-toolbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: stretch;
+  }
+
+  .region-toolbar > p {
+    grid-column: 1;
+    width: 100%;
+  }
+
+  .region-action-row {
+    grid-column: 1;
+    width: 100%;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .region-action-row .filter-scroll-guide {
+    grid-column: auto;
+    grid-row: auto;
+    flex: 0 1 auto;
+    width: auto;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    gap: 4px;
+  }
+
+  .region-action-row .filter-scroll-arrow {
+    flex: 0 0 34px;
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
+    padding: 0;
+  }
+
+  .region-action-row .filter-scroll-message {
+    flex: 0 1 auto;
+    gap: 4px;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+
+  .region-action-row .filter-scroll-line {
+    flex: 0 0 10px;
+    width: 10px;
+  }
+
+  .region-action-row .bulk-actions {
+    flex: 0 0 auto;
+    width: auto;
+    margin: 0;
+    gap: 6px;
+    justify-content: flex-start;
+  }
+
+  .region-action-row .bulk-actions button {
+    min-width: 60px;
+    min-height: 40px;
+    padding: 6px 10px;
+    font-size: 15px;
+    line-height: 1;
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 350px) {
+  .region-action-row {
+    gap: 5px;
+  }
+
+  .region-action-row .filter-scroll-arrow {
+    flex-basis: 30px;
+    width: 30px;
+    height: 30px;
+    min-width: 30px;
+  }
+
+  .region-action-row .filter-scroll-message {
+    font-size: 12px;
+  }
+
+  .region-action-row .bulk-actions {
+    gap: 4px;
+  }
+
+  .region-action-row .bulk-actions button {
+    min-width: 54px;
+    padding-inline: 7px;
+    font-size: 14px;
+  }
+}

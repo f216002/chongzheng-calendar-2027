@@ -15,7 +15,7 @@
   <title>寶光崇正2027年度全球行事曆</title>
   <link rel="preconnect" href="https://script.google.com">
   <link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=20260914-11">
+  <link rel="stylesheet" href="styles.css?v=20260914-12">
 </head>
 <body>
   <header class="topbar">
@@ -63,19 +63,21 @@
 
       <div class="region-toolbar">
         <p id="regionDescription">台灣道務中心與各地道場</p>
-        <div class="bulk-actions">
-          <button id="selectRegion" type="button">全選</button>
-          <button id="clearRegion" type="button">取消</button>
+        <div class="region-action-row">
+          <div id="filterScrollGuide" class="filter-scroll-guide is-hidden" aria-label="分類選項可左右滑動">
+            <button id="filterScrollLeft" class="filter-scroll-arrow" type="button" aria-label="向左查看更多分類">‹</button>
+            <div class="filter-scroll-message" aria-hidden="true">
+              <span class="filter-scroll-line"></span>
+              <span>左右滑</span>
+              <span class="filter-scroll-line"></span>
+            </div>
+            <button id="filterScrollRight" class="filter-scroll-arrow" type="button" aria-label="向右查看更多分類">›</button>
+          </div>
+          <div class="bulk-actions">
+            <button id="selectRegion" type="button">全選</button>
+            <button id="clearRegion" type="button">取消</button>
+          </div>
         </div>
-      </div>
-      <div id="filterScrollGuide" class="filter-scroll-guide is-hidden" aria-label="分類選項可左右滑動">
-        <button id="filterScrollLeft" class="filter-scroll-arrow" type="button" aria-label="向左查看更多分類">‹</button>
-        <div class="filter-scroll-message" aria-hidden="true">
-          <span class="filter-scroll-line"></span>
-          <span>左右滑動以選擇</span>
-          <span class="filter-scroll-line"></span>
-        </div>
-        <button id="filterScrollRight" class="filter-scroll-arrow" type="button" aria-label="向右查看更多分類">›</button>
       </div>
       <div id="filters" class="filters" aria-live="polite"></div>
 
