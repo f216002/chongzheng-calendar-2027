@@ -1065,3 +1065,47 @@ footer {
     font-size: 17px;
   }
 }
+
+
+/* 台灣／全球按鈕：三字寬，選中時使用 Banner 金黃色 */
+.region-tab {
+  min-width: 5.2em;
+}
+
+.region-tab.active,
+.region-tab[aria-selected="true"] {
+  color: #17324a;
+  background: var(--accent);
+  border-color: #d39b2f;
+  box-shadow:
+    0 7px 18px rgba(185, 134, 47, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.45);
+}
+
+.region-tab.active:hover,
+.region-tab[aria-selected="true"]:hover {
+  color: #17324a;
+  background: var(--accent);
+  border-color: #c88d20;
+}
+
+.region-tab:focus-visible {
+  outline: 3px solid rgba(241, 185, 74, 0.42);
+  outline-offset: 3px;
+}
+
+@media (max-width: 760px) {
+  .region-tab {
+    width: 76px;
+    min-width: 76px;
+    padding-inline: 10px;
+  }
+}
+
+@media (max-width: 350px) {
+  .region-tab {
+    width: 70px;
+    min-width: 70px;
+    padding-inline: 8px;
+  }
+}
