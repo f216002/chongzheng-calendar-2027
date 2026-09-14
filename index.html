@@ -15,7 +15,7 @@
   <title>寶光崇正2027年度全球行事曆</title>
   <link rel="preconnect" href="https://script.google.com">
   <link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=20260914-20">
+  <link rel="stylesheet" href="styles.css?v=20260914-21">
 </head>
 <body>
   <header class="topbar">
@@ -81,51 +81,50 @@
         </div>
       </div>
       <div id="filters" class="filters" aria-live="polite"></div>
+      <div class="utility-panels">
+        <section class="speech-panel" aria-labelledby="speechTitle">
+          <div class="speech-heading">
+            <div>
+              <h3 id="speechTitle">會議逐日朗讀</h3>
+              <p>點任一事件為起點，或直接從頭播放。</p>
+            </div>
+          </div>
+          <div class="speech-actions" aria-label="朗讀控制">
+            <button id="speechPlay" class="speech-primary" type="button" aria-label="播放" title="播放">▶</button>
+            <button id="speechPause" type="button" aria-label="暫停" title="暫停" disabled>Ⅱ</button>
+            <button id="speechStop" type="button" aria-label="停止" title="停止" disabled>■</button>
+          </div>
+          <p id="speechStatus" class="speech-status" aria-live="polite"></p>
+        </section>
+
+        <section class="advanced-search" aria-labelledby="searchTitle">
+          <div class="search-heading">
+            <div>
+              <h3 id="searchTitle">進階關鍵字搜尋</h3>
+            </div>
+            <button id="clearSearch" class="clear-search" type="button">清除搜尋</button>
+          </div>
+          <div class="search-builder">
+            <label class="search-term">
+              <span>關鍵字 1</span>
+              <input id="keyword1" type="search" placeholder="例如：身心靈" autocomplete="off">
+            </label>
+            <label class="search-operator">
+              <span>條件</span>
+              <select id="operator2" aria-label="關鍵字一與二的條件">
+                <option value="AND">且</option>
+                <option value="OR">或</option>
+                <option value="EXCLUDED">除</option>
+              </select>
+            </label>
+            <label class="search-term">
+              <span>關鍵字 2</span>
+              <input id="keyword2" type="search" placeholder="例如：國高中" autocomplete="off">
+            </label>
+          </div>
+        </section>
+      </div>
     </section>
-
-    <div class="utility-panels">
-      <section class="speech-panel" aria-labelledby="speechTitle">
-        <div class="speech-heading">
-          <div>
-            <h3 id="speechTitle">會議逐日朗讀</h3>
-            <p>點任一事件為起點，或直接從頭播放。</p>
-          </div>
-        </div>
-        <div class="speech-actions" aria-label="朗讀控制">
-          <button id="speechPlay" class="speech-primary" type="button" aria-label="播放" title="播放">▶</button>
-          <button id="speechPause" type="button" aria-label="暫停" title="暫停" disabled>Ⅱ</button>
-          <button id="speechStop" type="button" aria-label="停止" title="停止" disabled>■</button>
-        </div>
-        <p id="speechStatus" class="speech-status" aria-live="polite"></p>
-      </section>
-
-      <section class="advanced-search" aria-labelledby="searchTitle">
-        <div class="search-heading">
-          <div>
-            <h3 id="searchTitle">進階關鍵字搜尋</h3>
-          </div>
-          <button id="clearSearch" class="clear-search" type="button">清除搜尋</button>
-        </div>
-        <div class="search-builder">
-          <label class="search-term">
-            <span>關鍵字 1</span>
-            <input id="keyword1" type="search" placeholder="例如：身心靈" autocomplete="off">
-          </label>
-          <label class="search-operator">
-            <span>條件</span>
-            <select id="operator2" aria-label="關鍵字一與二的條件">
-              <option value="AND">且</option>
-              <option value="OR">或</option>
-              <option value="EXCLUDED">除</option>
-            </select>
-          </label>
-          <label class="search-term">
-            <span>關鍵字 2</span>
-            <input id="keyword2" type="search" placeholder="例如：國高中" autocomplete="off">
-          </label>
-        </div>
-      </section>
-    </div>
 
     <section class="calendar-toolbar" aria-label="月份切換">
       <button id="previousMonth" class="month-button" type="button" aria-label="上一個月">‹</button>
