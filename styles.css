@@ -1013,3 +1013,55 @@ footer {
     font-size: 16px;
   }
 }
+
+
+/* 重新整理鍵移至「選擇要查看的行事曆」標題列右側 */
+.filter-heading-copy {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.filter-title-row {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.panel-refresh-button {
+  position: static;
+  right: auto;
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  color: #087f8c;
+  font-size: 17px;
+  line-height: 1;
+  background: linear-gradient(180deg, #ffffff, #eef9fb);
+  border: 1px solid #9fc9d5;
+  border-radius: 9px;
+  box-shadow: 0 4px 12px rgba(23, 104, 131, 0.12);
+}
+
+.panel-refresh-button span {
+  display: none;
+}
+
+.panel-refresh-button:hover {
+  background: #e5f6f8;
+}
+
+@media (max-width: 760px) {
+  .filter-title-row {
+    align-items: flex-start;
+  }
+
+  .panel-refresh-button {
+    width: 36px;
+    height: 36px;
+    margin-left: auto;
+    font-size: 17px;
+  }
+}
