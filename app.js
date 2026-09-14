@@ -281,13 +281,12 @@ function isCoreEvent(event) {
 }
 
 function getSearchExpression() {
-  const terms = [1, 2, 3].map(index =>
+  const terms = [1, 2].map(index =>
     document.querySelector(`#keyword${index}`).value.trim().toLocaleLowerCase('zh-Hant')
   );
   const operators = {
     1: 'AND',
-    2: document.querySelector('#operator2').value,
-    3: document.querySelector('#operator3').value
+    2: document.querySelector('#operator2').value
   };
   return { terms, operators };
 }
@@ -728,18 +727,17 @@ document.querySelector('#selectAll').addEventListener('click', () => {
 document.querySelector('#clearAll').addEventListener('click', () => {
   state.selected.clear(); renderFilters(); renderCalendar();
 });
-[1, 2, 3].forEach(index => {
-  document.querySelector(`#keyword${index}`).addEventListener('input', renderCalendar);
-});
-['#operator2', '#operator3'].forEach(selector => {
+[1, 2].forEach(index => {
+    document.querySelector(`#keyword${index}`).addEventListener('input', renderCalendar);
+  });
+['#operator2'].forEach(selector => {
   document.querySelector(selector).addEventListener('change', renderCalendar);
 });
 document.querySelector('#clearSearch').addEventListener('click', () => {
-  [1, 2, 3].forEach(index => {
-    document.querySelector(`#keyword${index}`).value = '';
-  });
+  [1, 2].forEach(index => {
+      document.querySelector(`#keyword${index}`).value = '';
+    });
   document.querySelector('#operator2').value = 'AND';
-  document.querySelector('#operator3').value = 'AND';
   renderCalendar();
   document.querySelector('#keyword1').focus();
 });
