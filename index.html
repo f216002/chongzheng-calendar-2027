@@ -15,7 +15,7 @@
   <title>寶光崇正2027年度全球行事曆</title>
   <link rel="preconnect" href="https://script.google.com">
   <link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=20260914-19">
+  <link rel="stylesheet" href="styles.css?v=20260914-20">
 </head>
 <body>
   <header class="topbar">
@@ -39,15 +39,20 @@
             <button id="refreshButton" class="icon-button panel-refresh-button" type="button" aria-label="重新載入資料" title="更新資料">↻ <span>更新資料</span></button>
           </div>
         </div>
-        <div class="font-size-controls" role="group" aria-label="手機版字體大小">
-          <span class="font-size-label">字體大小</span>
+      </div>
+
+      <div class="region-top-row">
+        <div class="region-tabs" role="tablist" aria-label="地區分類">
+          <button id="taiwanTab" class="region-tab active" type="button" role="tab" aria-selected="true" data-region="taiwan">台灣</button>
+          <button id="globalTab" class="region-tab" type="button" role="tab" aria-selected="false" data-region="global">全球</button>
+        </div>
+        <div class="font-size-controls" role="group" aria-label="字體大小">
           <button id="fontSizeDecrease" class="font-size-button" type="button" aria-label="縮小網頁字體" title="縮小字體">
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <circle cx="10.5" cy="10.5" r="6.5"></circle>
               <path d="M15.5 15.5 21 21M7.5 10.5h6"></path>
             </svg>
           </button>
-          <output id="fontScaleValue" class="font-scale-value" aria-live="polite">100%</output>
           <button id="fontSizeIncrease" class="font-size-button" type="button" aria-label="放大網頁字體" title="放大字體">
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <circle cx="10.5" cy="10.5" r="6.5"></circle>
@@ -55,11 +60,6 @@
             </svg>
           </button>
         </div>
-      </div>
-
-      <div class="region-tabs" role="tablist" aria-label="地區分類">
-        <button id="taiwanTab" class="region-tab active" type="button" role="tab" aria-selected="true" data-region="taiwan">台灣</button>
-        <button id="globalTab" class="region-tab" type="button" role="tab" aria-selected="false" data-region="global">全球</button>
       </div>
 
       <div class="region-toolbar">

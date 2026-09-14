@@ -786,8 +786,7 @@ footer {
 
 /* =========================================================
    手機版頂部控制列重排 2026-09-14
-   第一排：台灣／全球
-   第二排：字體大小與縮放控制
+   第一排：台灣／全球／縮小／放大
    ========================================================= */
 @media (max-width: 760px) {
   .control-panel {
@@ -883,6 +882,79 @@ footer {
     font-size: 14px;
   }
 
+}
+
+
+/* 手機版：台灣、全球與字體縮放合併為同一橫排 */
+@media (max-width: 760px) {
+  .region-top-row {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    display: flex;
+    width: 100%;
+    min-width: 0;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    margin: .5rem 0 0;
+  }
+
+  .region-top-row .region-tabs {
+    grid-column: auto;
+    grid-row: auto;
+    flex: 0 0 auto;
+    width: auto;
+    margin: 0;
+  }
+
+  .region-top-row .font-size-controls {
+    grid-column: auto;
+    grid-row: auto;
+    display: flex;
+    flex: 0 0 auto;
+    grid-template-columns: none;
+    grid-template-rows: none;
+    justify-self: auto;
+    gap: 6px;
+    margin: 0;
+  }
+
+  .region-top-row .font-size-button {
+    width: 44px;
+    height: 44px;
+  }
+
+  .region-toolbar {
+    grid-row: 3;
+  }
+
+  .filter-scroll-guide {
+    grid-row: 4;
+  }
+
+  .filters {
+    grid-row: 5;
+  }
+
+  .advanced-search {
+    grid-row: 6;
+  }
+}
+
+@media (max-width: 360px) {
+  .region-top-row {
+    gap: 4px;
+  }
+
+  .region-top-row .region-tabs,
+  .region-top-row .font-size-controls {
+    gap: 4px;
+  }
+
+  .region-top-row .font-size-button {
+    width: 40px;
+    height: 40px;
+  }
 }
 
 
