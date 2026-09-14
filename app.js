@@ -51,6 +51,10 @@ const elements = {
   speechPlay: document.querySelector('#speechPlay'),
   speechPause: document.querySelector('#speechPause'),
   speechStop: document.querySelector('#speechStop'),
+  floatingSpeechControls: document.querySelector('#floatingSpeechControls'),
+  floatingSpeechPlay: document.querySelector('#floatingSpeechPlay'),
+  floatingSpeechPause: document.querySelector('#floatingSpeechPause'),
+  floatingSpeechStop: document.querySelector('#floatingSpeechStop'),
   filterScrollGuide: document.querySelector('#filterScrollGuide'),
   filterScrollLeft: document.querySelector('#filterScrollLeft'),
   filterScrollRight: document.querySelector('#filterScrollRight'),
@@ -568,14 +572,28 @@ function highlightSpeechItem(item) {
 }
 
 function updateSpeechButtons() {
-  elements.speechPlay.textContent = '▶';
-  elements.speechPlay.setAttribute('aria-label', speechState.playing ? '重新播放' : '播放');
-  elements.speechPlay.title = speechState.playing ? '重新播放' : '播放';
-  elements.speechPause.disabled = !speechState.playing;
-  elements.speechStop.disabled = !speechState.playing;
-  elements.speechPause.textContent = 'Ⅱ';
-  elements.speechPause.setAttribute('aria-label', speechState.paused ? '繼續' : '暫停');
-  elements.speechPause.title = speechState.paused ? '繼續' : '暫停';
+  const playLabel = speechState.playing ? '重新播放' : '播放';
+  const pauseLabel = speechState.paused ? '繼續' : '暫停';
+  [elements.speechPlay, elements.floatingSpeechPlay].forEach(button => {
+    if (!button) return;
+    button.textContent = '▶';
+    button.setAttribute('aria-label', playLabel);
+    button.title = playLabel;
+  });
+  [elements.speechPause, elements.floatingSpeechPause].forEach(button => {
+    if (!button) return;
+    button.disabled = !speechState.playing;
+    button.textContent = 'Ⅱ';
+    button.setAttribute('aria-label', pauseLabel);
+    button.title = pauseLabel;
+  });
+  [elements.speechStop, elements.floatingSpeechStop].forEach(button => {
+    if (!button) return;
+    button.disabled = !speechState.playing;
+  });
+  if (elements.floatingSpeechControls) {
+    elements.floatingSpeechControls.hidden = !speechState.playing;
+  }
 }
 
 function speakNext() {
@@ -696,6 +714,9 @@ window.addEventListener('resize', updateFilterScrollGuide);
 document.querySelector('#speechPlay').addEventListener('click', startSpeech);
 document.querySelector('#speechPause').addEventListener('click', toggleSpeechPause);
 document.querySelector('#speechStop').addEventListener('click', () => stopSpeech(true));
+elements.floatingSpeechPlay?.addEventListener('click', startSpeech);
+elements.floatingSpeechPause?.addEventListener('click', toggleSpeechPause);
+elements.floatingSpeechStop?.addEventListener('click', () => stopSpeech(true));
 window.addEventListener('beforeunload', () => stopSpeech(false));
 document.querySelector('#previousMonth').addEventListener('click', () => changeMonth(-1));
 document.querySelector('#nextMonth').addEventListener('click', () => changeMonth(1));
