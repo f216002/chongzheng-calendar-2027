@@ -15,7 +15,7 @@
   <title>寶光崇正2027年度全球行事曆</title>
   <link rel="preconnect" href="https://script.google.com">
   <link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=20260914-21">
+  <link rel="stylesheet" href="styles.css?v=20260914-22">
 </head>
 <body>
   <header class="topbar">
@@ -31,7 +31,8 @@
   </div>
 
   <main>
-    <section class="control-panel" aria-labelledby="filterTitle">
+    <div class="top-controls-layout">
+      <section class="control-panel" aria-labelledby="filterTitle">
       <div class="control-heading">
         <div class="filter-heading-copy">
           <div class="filter-title-row">
@@ -80,7 +81,9 @@
           </div>
         </div>
       </div>
-      <div id="filters" class="filters" aria-live="polite"></div>
+        <div id="filters" class="filters" aria-live="polite"></div>
+      </section>
+
       <div class="utility-panels">
         <section class="speech-panel" aria-labelledby="speechTitle">
           <div class="speech-heading">
@@ -124,7 +127,7 @@
           </div>
         </section>
       </div>
-    </section>
+    </div>
 
     <section class="calendar-toolbar" aria-label="月份切換">
       <button id="previousMonth" class="month-button" type="button" aria-label="上一個月">‹</button>

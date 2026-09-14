@@ -32,6 +32,7 @@ h1 {
 }
 .icon-button:disabled { cursor: wait; }
 main { width: min(1420px, calc(100% - 2rem)); margin: 1.2rem auto 3rem; }
+.top-controls-layout { display: contents; }
 .utility-panels { display: grid; grid-template-columns: minmax(280px, .68fr) minmax(520px, 1.5fr); gap: .8rem; align-items: stretch; margin-top: .75rem; }
 .utility-panels > .speech-panel, .utility-panels > .advanced-search { min-width: 0; margin-top: 0; padding: .85rem; }
 .control-panel { padding: 1rem; background: var(--card); border: 1px solid var(--line); border-radius: 1rem; box-shadow: 0 8px 30px rgba(27,54,73,.06); }
@@ -887,12 +888,21 @@ footer {
 
 /* 電腦版：地區、逐日朗讀與進階搜尋整合為同一橫排 */
 @media (min-width: 1100px) {
-  .control-panel {
+  .top-controls-layout {
     display: grid;
     grid-template-columns: minmax(250px, 300px) minmax(270px, 320px) minmax(480px, 650px);
     column-gap: 14px;
     align-items: stretch;
     justify-content: space-between;
+    padding: 1rem;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 1rem;
+    box-shadow: 0 8px 30px rgba(27,54,73,.06);
+  }
+
+  .control-panel {
+    display: contents;
   }
 
   .control-heading,
