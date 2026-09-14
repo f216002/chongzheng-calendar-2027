@@ -965,12 +965,16 @@ footer {
 /* 手機版 Banner 第二階段：標題放大 200%、置中，重新整理鍵縮小靠右 */
 @media (max-width: 760px) {
   .topbar-title {
+    inset: auto;
+    top: 50%;
+    left: 50%;
     display: flex;
     width: 100%;
     padding-inline: 0;
     justify-content: center;
     align-items: center;
     text-align: center;
+    transform: translate(-50%, -50%);
   }
 
   .topbar-title h1 {
