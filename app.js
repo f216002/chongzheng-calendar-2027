@@ -297,10 +297,8 @@ function hasActiveSearch() {
 
 function matchesAdvancedSearch(event) {
   const { terms, operators } = getSearchExpression();
-  const activeTerms = terms
-    .map((term, index) => ({ term, position: index + 1 }))
-    .filter(item => item.term);
-  if (!activeTerms.length) return true;
+  const [firstTerm, secondTerm] = terms;
+  if (!firstTerm && !secondTerm) return true;
 
   const category = state.categories.find(item => item.code === event.category);
   const haystack = [
@@ -308,16 +306,15 @@ function matchesAdvancedSearch(event) {
     event.venue, event.categoryName, category?.name, conciseEventLabel(event, category)
   ].filter(Boolean).join(' ').toLocaleLowerCase('zh-Hant');
 
-  const orGroups = [];
-  activeTerms.forEach((item, index) => {
-    const matches = haystack.includes(item.term);
-    if (index === 0 || operators[item.position] === 'OR') {
-      orGroups.push([matches]);
-    } else {
-      orGroups[orGroups.length - 1].push(matches);
-    }
-  });
-  return orGroups.some(group => group.every(Boolean));
+  const firstMatches = firstTerm ? haystack.includes(firstTerm) : false;
+  const secondMatches = secondTerm ? haystack.includes(secondTerm) : false;
+  const operator = operators[2];
+
+  if (!firstTerm) return operator === 'EXCLUDE' ? !secondMatches : secondMatches;
+  if (!secondTerm) return firstMatches;
+  if (operator === 'OR') return firstMatches || secondMatches;
+  if (operator === 'EXCLUDE') return firstMatches && !secondMatches;
+  return firstMatches && secondMatches;
 }
 
 function updateSearchSummary(visibleCount) {

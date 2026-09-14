@@ -1166,7 +1166,10 @@ body {
 
 /* 雙關鍵字搜尋版面：桌面與手機皆保持「關鍵字 1／條件／關鍵字 2」同一橫排 */
 .search-builder {
-  grid-template-columns: minmax(0, 1fr) 110px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) 118px minmax(0, 1fr);
+  max-width: 1100px;
+  margin-inline: auto;
+  align-items: end;
 }
 
 .search-operator {
@@ -1175,7 +1178,7 @@ body {
 
 @media (max-width: 760px) {
   .search-builder {
-    grid-template-columns: minmax(0, 1fr) 88px minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) 108px minmax(0, 1fr);
     gap: 0.45rem;
   }
 
@@ -1193,7 +1196,7 @@ body {
 
 @media (max-width: 350px) {
   .search-builder {
-    grid-template-columns: minmax(0, 1fr) 78px minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) 98px minmax(0, 1fr);
     gap: 0.3rem;
   }
 
@@ -1205,5 +1208,19 @@ body {
   .search-term input,
   .search-operator select {
     padding-inline: 0.42rem;
+  }
+}
+
+
+/* 三种双关键字条件的手机适配 */
+@media (max-width: 760px) {
+  .search-builder {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .search-operator select {
+    font-size: 0.78em;
+    padding-inline: 0.3rem;
   }
 }
