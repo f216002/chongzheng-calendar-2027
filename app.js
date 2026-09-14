@@ -281,15 +281,10 @@ function isCoreEvent(event) {
 }
 
 function getSearchExpression() {
-  const terms = [1, 2, 3].map(index =>
+  const terms = [1, 2].map(index =>
     document.querySelector(`#keyword${index}`).value.trim().toLocaleLowerCase('zh-Hant')
   );
-  const operators = {
-    1: 'AND',
-    2: document.querySelector('#operator2').value,
-    3: document.querySelector('#operator3').value
-  };
-  return { terms, operators };
+  return { terms, operator: document.querySelector('#operator2').value };
 }
 
 function hasActiveSearch() {
@@ -297,11 +292,9 @@ function hasActiveSearch() {
 }
 
 function matchesAdvancedSearch(event) {
-  const { terms, operators } = getSearchExpression();
-  const activeTerms = terms
-    .map((term, index) => ({ term, position: index + 1 }))
-    .filter(item => item.term);
-  if (!activeTerms.length) return true;
+  const { terms, operator } = getSearchExpression();
+  const [firstTerm, secondTerm] = terms;
+  if (!firstTerm && !secondTerm) return true;
 
   const category = state.categories.find(item => item.code === event.category);
   const haystack = [
@@ -309,32 +302,30 @@ function matchesAdvancedSearch(event) {
     event.venue, event.categoryName, category?.name, conciseEventLabel(event, category)
   ].filter(Boolean).join(' ').toLocaleLowerCase('zh-Hant');
 
-  const orGroups = [];
-  activeTerms.forEach((item, index) => {
-    const matches = haystack.includes(item.term);
-    if (index === 0 || operators[item.position] === 'OR') {
-      orGroups.push([matches]);
-    } else {
-      orGroups[orGroups.length - 1].push(matches);
-    }
-  });
-  return orGroups.some(group => group.every(Boolean));
+  const firstMatches = firstTerm ? haystack.includes(firstTerm) : true;
+  const secondMatches = secondTerm ? haystack.includes(secondTerm) : false;
+
+  if (!firstTerm) return operator === 'EXCLUDED' ? !secondMatches : secondMatches;
+  if (!secondTerm) return firstMatches;
+  if (operator === 'OR') return firstMatches || secondMatches;
+  if (operator === 'EXCLUDED') return firstMatches && !secondMatches;
+  return firstMatches && secondMatches;
 }
 
 function updateSearchSummary(visibleCount) {
-  const { terms, operators } = getSearchExpression();
-  const active = terms
-    .map((term, index) => ({ term, position: index + 1 }))
-    .filter(item => item.term);
-  if (!active.length) {
-    elements.searchSummary.textContent = `目前月份显示 ${visibleCount} 笔活动。`;
+  const { terms, operator } = getSearchExpression();
+  const [firstTerm, secondTerm] = terms;
+  if (!firstTerm && !secondTerm) {
+    elements.searchSummary.textContent = `目前月份顯示 ${visibleCount} 筆活動。`;
     return;
   }
-  const expression = active.map((item, index) => {
-    if (!index) return `「${item.term}」`;
-    return `${operators[item.position] === 'AND' ? '且' : '或'} 「${item.term}」`;
-  }).join(' ');
-  elements.searchSummary.textContent = `检索：${expression}，找到 ${visibleCount} 笔活动。`;
+  const operatorLabel = { AND: '且', OR: '或', EXCLUDED: '除' }[operator] || '且';
+  const expression = firstTerm && secondTerm
+    ? `「${firstTerm}」${operatorLabel}「${secondTerm}」`
+    : operator === 'EXCLUDED' && secondTerm
+      ? `排除「${secondTerm}」`
+      : `「${firstTerm || secondTerm}」`;
+  elements.searchSummary.textContent = `檢索：${expression}，找到 ${visibleCount} 筆活動。`;
 }
 
 function getVisibleEvents() {
@@ -728,18 +719,15 @@ document.querySelector('#selectAll').addEventListener('click', () => {
 document.querySelector('#clearAll').addEventListener('click', () => {
   state.selected.clear(); renderFilters(); renderCalendar();
 });
-[1, 2, 3].forEach(index => {
+[1, 2].forEach(index => {
   document.querySelector(`#keyword${index}`).addEventListener('input', renderCalendar);
 });
-['#operator2', '#operator3'].forEach(selector => {
-  document.querySelector(selector).addEventListener('change', renderCalendar);
-});
+document.querySelector('#operator2').addEventListener('change', renderCalendar);
 document.querySelector('#clearSearch').addEventListener('click', () => {
-  [1, 2, 3].forEach(index => {
+  [1, 2].forEach(index => {
     document.querySelector(`#keyword${index}`).value = '';
   });
   document.querySelector('#operator2').value = 'AND';
-  document.querySelector('#operator3').value = 'AND';
   renderCalendar();
   document.querySelector('#keyword1').focus();
 });
