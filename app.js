@@ -281,12 +281,13 @@ function isCoreEvent(event) {
 }
 
 function getSearchExpression() {
-  const terms = [1, 2].map(index =>
+  const terms = [1, 2, 3].map(index =>
     document.querySelector(`#keyword${index}`).value.trim().toLocaleLowerCase('zh-Hant')
   );
   const operators = {
     1: 'AND',
-    2: document.querySelector('#operator2').value
+    2: document.querySelector('#operator2').value,
+    3: document.querySelector('#operator3').value
   };
   return { terms, operators };
 }
@@ -297,8 +298,10 @@ function hasActiveSearch() {
 
 function matchesAdvancedSearch(event) {
   const { terms, operators } = getSearchExpression();
-  const [firstTerm, secondTerm] = terms;
-  if (!firstTerm && !secondTerm) return true;
+  const activeTerms = terms
+    .map((term, index) => ({ term, position: index + 1 }))
+    .filter(item => item.term);
+  if (!activeTerms.length) return true;
 
   const category = state.categories.find(item => item.code === event.category);
   const haystack = [
@@ -306,15 +309,16 @@ function matchesAdvancedSearch(event) {
     event.venue, event.categoryName, category?.name, conciseEventLabel(event, category)
   ].filter(Boolean).join(' ').toLocaleLowerCase('zh-Hant');
 
-  const firstMatches = firstTerm ? haystack.includes(firstTerm) : false;
-  const secondMatches = secondTerm ? haystack.includes(secondTerm) : false;
-  const operator = operators[2];
-
-  if (!firstTerm) return operator === 'EXCLUDE' ? !secondMatches : secondMatches;
-  if (!secondTerm) return firstMatches;
-  if (operator === 'OR') return firstMatches || secondMatches;
-  if (operator === 'EXCLUDE') return firstMatches && !secondMatches;
-  return firstMatches && secondMatches;
+  const orGroups = [];
+  activeTerms.forEach((item, index) => {
+    const matches = haystack.includes(item.term);
+    if (index === 0 || operators[item.position] === 'OR') {
+      orGroups.push([matches]);
+    } else {
+      orGroups[orGroups.length - 1].push(matches);
+    }
+  });
+  return orGroups.some(group => group.every(Boolean));
 }
 
 function updateSearchSummary(visibleCount) {
@@ -724,17 +728,18 @@ document.querySelector('#selectAll').addEventListener('click', () => {
 document.querySelector('#clearAll').addEventListener('click', () => {
   state.selected.clear(); renderFilters(); renderCalendar();
 });
-[1, 2].forEach(index => {
-    document.querySelector(`#keyword${index}`).addEventListener('input', renderCalendar);
-  });
-['#operator2'].forEach(selector => {
+[1, 2, 3].forEach(index => {
+  document.querySelector(`#keyword${index}`).addEventListener('input', renderCalendar);
+});
+['#operator2', '#operator3'].forEach(selector => {
   document.querySelector(selector).addEventListener('change', renderCalendar);
 });
 document.querySelector('#clearSearch').addEventListener('click', () => {
-  [1, 2].forEach(index => {
-      document.querySelector(`#keyword${index}`).value = '';
-    });
+  [1, 2, 3].forEach(index => {
+    document.querySelector(`#keyword${index}`).value = '';
+  });
   document.querySelector('#operator2').value = 'AND';
+  document.querySelector('#operator3').value = 'AND';
   renderCalendar();
   document.querySelector('#keyword1').focus();
 });
