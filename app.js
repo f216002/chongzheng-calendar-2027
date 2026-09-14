@@ -6,6 +6,14 @@ const REGIONAL_CLASS_COLOR = '#EC625D';
 const DATA_CACHE_KEY = 'chongzheng-calendar-data-v2';
 const API_SLOW_NOTICE_MS = 8000;
 const API_TIMEOUT_MS = 30000;
+const FONT_SCALE_KEY = 'chongzheng-calendar-font-level-v1';
+const FONT_LEVELS = [
+  { size: '94%', label: '較小' },
+  { size: '100%', label: '標準' },
+  { size: '113%', label: '放大' },
+  { size: '125%', label: '特大' }
+];
+let currentFontLevel = 1;
 let apiSlowTimer = null;
 let apiTimeoutTimer = null;
 const CORE_CODES = new Set(['center_classes', 'shared', 'all_classes']);
@@ -45,8 +53,53 @@ const elements = {
   speechStop: document.querySelector('#speechStop'),
   filterScrollGuide: document.querySelector('#filterScrollGuide'),
   filterScrollLeft: document.querySelector('#filterScrollLeft'),
-  filterScrollRight: document.querySelector('#filterScrollRight')
+  filterScrollRight: document.querySelector('#filterScrollRight'),
+  fontSizeDecrease: document.querySelector('#fontSizeDecrease'),
+  fontSizeIncrease: document.querySelector('#fontSizeIncrease'),
+  fontScaleValue: document.querySelector('#fontScaleValue')
 };
+
+function applyFontLevel(level, save = true) {
+  const safeLevel = Math.min(Math.max(Number(level) || 0, 0), FONT_LEVELS.length - 1);
+  currentFontLevel = safeLevel;
+  document.documentElement.dataset.fontLevel = String(safeLevel);
+  if (elements.fontScaleValue) {
+    elements.fontScaleValue.value = FONT_LEVELS[safeLevel].size;
+    elements.fontScaleValue.textContent = FONT_LEVELS[safeLevel].size;
+    elements.fontScaleValue.setAttribute(
+      'aria-label',
+      `目前字體：${FONT_LEVELS[safeLevel].label} ${FONT_LEVELS[safeLevel].size}`
+    );
+  }
+  if (elements.fontSizeDecrease) elements.fontSizeDecrease.disabled = safeLevel === 0;
+  if (elements.fontSizeIncrease) elements.fontSizeIncrease.disabled = safeLevel === FONT_LEVELS.length - 1;
+  if (save) {
+    try {
+      localStorage.setItem(FONT_SCALE_KEY, String(safeLevel));
+    } catch (error) {
+      console.warn('無法儲存字體大小設定：', error);
+    }
+  }
+  requestAnimationFrame(() => {
+    updateFilterScrollGuide();
+    window.dispatchEvent(new Event('resize'));
+  });
+}
+
+function initializeFontLevel() {
+  let savedLevel = 1;
+  try {
+    const stored = Number(localStorage.getItem(FONT_SCALE_KEY));
+    if (Number.isInteger(stored)) savedLevel = stored;
+  } catch (error) {
+    console.warn('無法讀取字體大小設定：', error);
+  }
+  applyFontLevel(savedLevel, false);
+}
+
+function changeFontLevel(offset) {
+  applyFontLevel(currentFontLevel + offset);
+}
 
 window.loadCalendarData = function (payload) {
   clearApiTimers();
@@ -639,6 +692,8 @@ document.querySelectorAll('.region-tab').forEach(button => button.addEventListen
   resetToDefaultSelection();
   renderRegionTabs(); renderFilters(); renderCalendar();
 }));
+elements.fontSizeDecrease?.addEventListener('click', () => changeFontLevel(-1));
+elements.fontSizeIncrease?.addEventListener('click', () => changeFontLevel(1));
 elements.filterScrollLeft?.addEventListener('click', () => scrollFilters(-1));
 elements.filterScrollRight?.addEventListener('click', () => scrollFilters(1));
 elements.filters.addEventListener('scroll', updateFilterScrollGuide, { passive: true });
@@ -688,6 +743,7 @@ document.querySelector('#clearSearch').addEventListener('click', () => {
   renderCalendar();
   document.querySelector('#keyword1').focus();
 });
+initializeFontLevel();
 const hasCache = loadCachedData();
 const forceRefresh = new URLSearchParams(window.location.search).has('refresh');
 loadData({ force: forceRefresh, showLoading: !hasCache });

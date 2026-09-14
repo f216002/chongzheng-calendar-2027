@@ -15,7 +15,7 @@
   <title>寶光崇正2027年度全球行事曆</title>
   <link rel="preconnect" href="https://script.google.com">
   <link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=20260914-1">
+  <link rel="stylesheet" href="styles.css?v=20260914-2">
 </head>
 <body>
   <header class="topbar">
@@ -35,6 +35,22 @@
         <div class="bulk-actions total-actions" aria-label="全部分類操作">
           <button id="selectAll" type="button">總全選</button>
           <button id="clearAll" type="button">總取消</button>
+        </div>
+        <div class="font-size-controls" role="group" aria-label="手機版字體大小">
+          <span class="font-size-label">字體大小</span>
+          <button id="fontSizeDecrease" class="font-size-button" type="button" aria-label="縮小網頁字體" title="縮小字體">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="10.5" cy="10.5" r="6.5"></circle>
+              <path d="M15.5 15.5 21 21M7.5 10.5h6"></path>
+            </svg>
+          </button>
+          <output id="fontScaleValue" class="font-scale-value" aria-live="polite">100%</output>
+          <button id="fontSizeIncrease" class="font-size-button" type="button" aria-label="放大網頁字體" title="放大字體">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="10.5" cy="10.5" r="6.5"></circle>
+              <path d="M15.5 15.5 21 21M7.5 10.5h6M10.5 7.5v6"></path>
+            </svg>
+          </button>
         </div>
       </div>
 
@@ -146,6 +162,6 @@
   </main>
 
   <footer>資料來源：寶光崇正道務中心 Google 試算表</footer>
-  <script src="app.js?v=20260914-1"></script>
+  <script src="app.js?v=20260914-2"></script>
 </body>
 </html>

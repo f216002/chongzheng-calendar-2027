@@ -641,3 +641,168 @@ footer {
     animation-iteration-count: 1 !important;
   }
 }
+
+
+/* =========================================================
+   手機版無障礙字體控制 2026-09-14
+   以重新排版取代整頁視覺縮放，避免內容超出螢幕
+   ========================================================= */
+.font-size-controls {
+  display: none;
+}
+
+@media (max-width: 760px) {
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+  html[data-font-level="0"] { font-size: 15px; }
+  html[data-font-level="1"] { font-size: 16px; }
+  html[data-font-level="2"] { font-size: 18px; }
+  html[data-font-level="3"] { font-size: 20px; }
+
+  body {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+  main,
+  .control-panel,
+  .speech-panel,
+  .date-card,
+  .event-columns,
+  .event-column,
+  .advanced-search {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .control-heading {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    gap: .7rem;
+  }
+  .control-heading > div:first-child {
+    grid-column: 1 / -1;
+    min-width: 0;
+  }
+  .total-actions {
+    grid-column: 1;
+    align-self: end;
+    margin-top: .15rem;
+  }
+  .font-size-controls {
+    grid-column: 2;
+    display: grid;
+    grid-template-columns: 44px 42px 44px;
+    grid-template-rows: auto 44px;
+    align-items: center;
+    justify-items: center;
+    gap: .25rem;
+    color: #4e7184;
+  }
+  .font-size-label {
+    grid-column: 1 / -1;
+    font-size: 12px;
+    font-weight: 750;
+    letter-spacing: .04em;
+  }
+  .font-size-button {
+    display: grid;
+    width: 44px;
+    height: 44px;
+    place-items: center;
+    padding: 0;
+    color: #087f8c;
+    background: linear-gradient(180deg, #ffffff, #eef9fb);
+    border: 1px solid #a9ced9;
+    border-radius: 999px;
+    box-shadow: 0 4px 12px rgba(23,104,131,.1);
+    cursor: pointer;
+    touch-action: manipulation;
+    transition: transform .12s ease, background .15s ease, opacity .15s ease;
+  }
+  .font-size-button svg {
+    width: 25px;
+    height: 25px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.9;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .font-size-button:active:not(:disabled) {
+    transform: translateY(2px) scale(.96);
+    background: #dff4f6;
+  }
+  .font-size-button:disabled {
+    opacity: .3;
+    cursor: default;
+  }
+  .font-scale-value {
+    min-width: 42px;
+    color: #0b5477;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12px;
+    font-weight: 800;
+    text-align: center;
+  }
+
+  .bulk-actions {
+    min-width: 0;
+    flex-wrap: wrap;
+  }
+  .total-actions button {
+    padding: 8px 10px;
+    font-size: 15px;
+    white-space: nowrap;
+  }
+  .region-toolbar {
+    flex-wrap: wrap;
+  }
+  .region-toolbar > p {
+    flex: 1 1 120px;
+    min-width: 0;
+  }
+  .region-toolbar .bulk-actions {
+    margin-left: auto;
+  }
+  .search-builder {
+    grid-template-columns: minmax(0, 1fr) minmax(88px, 7.2rem);
+  }
+  .search-term,
+  .search-operator {
+    min-width: 0;
+  }
+  .search-term input,
+  .search-operator select {
+    min-width: 0;
+  }
+  .speech-actions button {
+    min-width: 0;
+    white-space: normal;
+  }
+  .topbar-title h1,
+  .control-heading p,
+  .region-toolbar p,
+  .event-name,
+  .event-category,
+  .speech-status,
+  footer {
+    overflow-wrap: anywhere;
+  }
+}
+
+@media (max-width: 360px) {
+  .control-heading {
+    grid-template-columns: 1fr;
+  }
+  .total-actions {
+    grid-column: 1;
+  }
+  .font-size-controls {
+    grid-column: 1;
+    justify-self: end;
+  }
+}
