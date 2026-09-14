@@ -568,10 +568,14 @@ function highlightSpeechItem(item) {
 }
 
 function updateSpeechButtons() {
-  elements.speechPlay.textContent = speechState.playing ? '▶ 重新開始' : '▶ 開始朗讀';
+  elements.speechPlay.textContent = '▶';
+  elements.speechPlay.setAttribute('aria-label', speechState.playing ? '重新播放' : '播放');
+  elements.speechPlay.title = speechState.playing ? '重新播放' : '播放';
   elements.speechPause.disabled = !speechState.playing;
   elements.speechStop.disabled = !speechState.playing;
-  elements.speechPause.textContent = speechState.paused ? '▶ 繼續' : 'Ⅱ 暫停';
+  elements.speechPause.textContent = 'Ⅱ';
+  elements.speechPause.setAttribute('aria-label', speechState.paused ? '繼續' : '暫停');
+  elements.speechPause.title = speechState.paused ? '繼續' : '暫停';
 }
 
 function speakNext() {
@@ -591,7 +595,7 @@ function speakNext() {
     : `正在朗讀：${item.text}`;
   const utterance = new SpeechSynthesisUtterance(prepareSpeechText(item.text));
   utterance.lang = 'zh-TW';
-  utterance.rate = Number(document.querySelector('#speechRate').value || 0.9);
+  utterance.rate = 0.9;
   utterance.pitch = 1;
   const voice = preferredVoice();
   if (voice) utterance.voice = voice;
@@ -603,7 +607,7 @@ function speakNext() {
   utterance.onerror = event => {
     if (event.error === 'canceled' || event.error === 'interrupted') return;
     stopSpeech(false);
-    elements.speechStatus.textContent = '瀏覽器語音暫時無法朗讀，請按「開始朗讀」重試。';
+    elements.speechStatus.textContent = '瀏覽器語音暫時無法朗讀，請按播放鍵重試。';
   };
   window.speechSynthesis.speak(utterance);
 }
@@ -692,8 +696,6 @@ window.addEventListener('resize', updateFilterScrollGuide);
 document.querySelector('#speechPlay').addEventListener('click', startSpeech);
 document.querySelector('#speechPause').addEventListener('click', toggleSpeechPause);
 document.querySelector('#speechStop').addEventListener('click', () => stopSpeech(true));
-document.querySelector('#speechPrevious').addEventListener('click', () => moveSpeechDate(-1));
-document.querySelector('#speechNext').addEventListener('click', () => moveSpeechDate(1));
 window.addEventListener('beforeunload', () => stopSpeech(false));
 document.querySelector('#previousMonth').addEventListener('click', () => changeMonth(-1));
 document.querySelector('#nextMonth').addEventListener('click', () => changeMonth(1));

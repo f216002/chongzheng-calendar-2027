@@ -130,16 +130,15 @@ footer { padding: 1rem; text-align: center; color: var(--muted); font-size: .82r
 .speech-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
 .speech-heading h3 { margin: 0; font-size: 1rem; }
 .speech-heading p { margin: .28rem 0 0; color: var(--muted); font-size: .84rem; }
-.speech-rate { display: grid; gap: .2rem; color: var(--muted); font-size: .75rem; font-weight: 700; }
-.speech-rate select { min-height: 38px; padding: .4rem 1.8rem .4rem .55rem; color: var(--ink); background: white; border: 1px solid #b9cad5; border-radius: .55rem; font: inherit; }
-.speech-actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .8rem; }
-.speech-actions button { min-height: 42px; padding: .5rem .8rem; color: var(--brand); background: white; border: 1px solid #b9cad5; border-radius: .65rem; cursor: pointer; font-weight: 700; }
+.speech-actions { display: flex; justify-content: center; gap: .7rem; margin-top: .8rem; }
+.speech-actions button { display: grid; width: 52px; height: 48px; place-items: center; padding: 0; color: var(--brand); background: white; border: 1px solid #b9cad5; border-radius: .65rem; cursor: pointer; font-size: 1.25rem; font-weight: 800; line-height: 1; }
 .speech-actions button:hover:not(:disabled) { background: #eef5f8; }
 .speech-actions button:active:not(:disabled) { transform: translateY(2px); }
 .speech-actions button:disabled { opacity: .45; cursor: not-allowed; }
 .speech-actions .speech-primary { color: white; background: var(--brand); border-color: var(--brand); }
 .speech-actions .speech-primary:hover:not(:disabled) { background: var(--brand-dark); }
-.speech-status { margin: .65rem 0 0; color: var(--muted); font-size: .82rem; }
+.speech-status { margin: .65rem 0 0; color: var(--muted); font-size: .82rem; text-align: center; }
+.speech-status:empty { display: none; }
 .date-card { cursor: pointer; transition: box-shadow .15s ease, border-color .15s ease; }
 .date-card:focus-visible { outline: 3px solid #8fc8e7; outline-offset: 2px; }
 .date-card.speech-selected { border-color: #2d86b5; box-shadow: 0 0 0 3px rgba(45,134,181,.18); }
@@ -149,14 +148,7 @@ footer { padding: 1rem; text-align: center; color: var(--muted); font-size: .82r
 
 @media (max-width: 760px) {
   .speech-heading { display: block; }
-  .speech-rate { width: 130px; margin-top: .65rem; }
-  .speech-actions { display: grid; grid-template-columns: 1fr 1.35fr 1fr; }
-  .speech-actions button { padding-inline: .35rem; font-size: .86rem; }
-  #speechPrevious { grid-column: 1; }
-  #speechPlay { grid-column: 2; }
-  #speechNext { grid-column: 3; grid-row: 1; }
-  #speechPause { grid-column: 1 / 2; }
-  #speechStop { grid-column: 2 / 4; }
+  .speech-actions { flex-wrap: nowrap; }
 }
 
 
@@ -475,15 +467,13 @@ main {
     #fbfdfe;
 }
 .search-term input,
-.search-operator select,
-.speech-rate select {
+.search-operator select {
   border-color: #b8d5df;
   background: rgba(255,255,255,.95);
   box-shadow: inset 0 1px 2px rgba(20,73,96,.035);
 }
 .search-term input:focus,
-.search-operator select:focus,
-.speech-rate select:focus {
+.search-operator select:focus {
   outline: 3px solid rgba(79,180,216,.24);
   border-color: #43a8c7;
 }
