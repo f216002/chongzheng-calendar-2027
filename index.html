@@ -15,7 +15,7 @@
   <title>寶光崇正2027年度全球行事曆</title>
   <link rel="preconnect" href="https://script.google.com">
   <link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=20260914-15">
+  <link rel="stylesheet" href="styles.css?v=20260914-16">
 </head>
 <body>
   <header class="topbar">
@@ -86,6 +86,23 @@
         </div>
       </div>
       <div id="filters" class="filters" aria-live="polite"></div>
+    </section>
+
+    <div class="utility-panels">
+      <section class="speech-panel" aria-labelledby="speechTitle">
+        <div class="speech-heading">
+          <div>
+            <h3 id="speechTitle">會議逐日朗讀</h3>
+            <p>點任一事件為起點，或直接從頭播放。</p>
+          </div>
+        </div>
+        <div class="speech-actions" aria-label="朗讀控制">
+          <button id="speechPlay" class="speech-primary" type="button" aria-label="播放" title="播放">▶</button>
+          <button id="speechPause" type="button" aria-label="暫停" title="暫停" disabled>Ⅱ</button>
+          <button id="speechStop" type="button" aria-label="停止" title="停止" disabled>■</button>
+        </div>
+        <p id="speechStatus" class="speech-status" aria-live="polite"></p>
+      </section>
 
       <section class="advanced-search" aria-labelledby="searchTitle">
         <div class="search-heading">
@@ -116,22 +133,7 @@
         <p class="search-rule">且：兩者皆含；或：包含任一；除：排除關鍵字 2。</p>
         <p id="searchSummary" class="search-summary" aria-live="polite"></p>
       </section>
-    </section>
-
-    <section class="speech-panel" aria-labelledby="speechTitle">
-      <div class="speech-heading">
-        <div>
-          <h3 id="speechTitle">會議逐日朗讀</h3>
-          <p>點任一事件為起點，或直接從頭播放。</p>
-        </div>
-      </div>
-      <div class="speech-actions" aria-label="朗讀控制">
-        <button id="speechPlay" class="speech-primary" type="button" aria-label="播放" title="播放">▶</button>
-        <button id="speechPause" type="button" aria-label="暫停" title="暫停" disabled>Ⅱ</button>
-        <button id="speechStop" type="button" aria-label="停止" title="停止" disabled>■</button>
-      </div>
-      <p id="speechStatus" class="speech-status" aria-live="polite"></p>
-    </section>
+    </div>
 
     <section class="calendar-toolbar" aria-label="月份切換">
       <button id="previousMonth" class="month-button" type="button" aria-label="上一個月">‹</button>
