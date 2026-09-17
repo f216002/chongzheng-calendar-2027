@@ -1,6 +1,7 @@
 'use strict';
 
 const API_URL = 'https://script.google.com/macros/s/AKfycbx11UqmZ_apamVa7FU5Dp46G9DNddfIeHaohjYFrasLNaZ0QcmDmIl2ZYVmOGihET44/exec';
+const PUBLIC_CALENDAR_ID = '1d311aa618934513387621d52ddaa5a4e15a5a894532b6aaeab89396fafca5e1@group.calendar.google.com';
 const CENTER_CLASS_COLOR = '#B52D3A';
 const REGIONAL_CLASS_COLOR = '#EC625D';
 const DATA_CACHE_KEY = 'chongzheng-calendar-data-v2';
@@ -59,8 +60,37 @@ const elements = {
   filterScrollRight: document.querySelector('#filterScrollRight'),
   fontSizeDecrease: document.querySelector('#fontSizeDecrease'),
   fontSizeIncrease: document.querySelector('#fontSizeIncrease'),
-  fontScaleValue: document.querySelector('#fontScaleValue')
+  fontScaleValue: document.querySelector('#fontScaleValue'),
+  subscribeCalendarButton: document.querySelector('#subscribeCalendarButton'),
+  calendarSubscribeModal: document.querySelector('#calendarSubscribeModal'),
+  calendarSubscribeClose: document.querySelector('#calendarSubscribeClose'),
+  googleCalendarSubscribe: document.querySelector('#googleCalendarSubscribe'),
+  appleCalendarSubscribe: document.querySelector('#appleCalendarSubscribe')
 };
+
+function initializeCalendarSubscription() {
+  const encodedCalendarId = encodeURIComponent(PUBLIC_CALENDAR_ID);
+  if (elements.googleCalendarSubscribe) {
+    elements.googleCalendarSubscribe.href = `https://calendar.google.com/calendar/u/0/r?cid=${encodedCalendarId}`;
+  }
+  if (elements.appleCalendarSubscribe) {
+    elements.appleCalendarSubscribe.href = `webcal://calendar.google.com/calendar/ical/${encodedCalendarId}/public/basic.ics`;
+  }
+}
+
+function openCalendarSubscribeModal() {
+  if (!elements.calendarSubscribeModal) return;
+  elements.calendarSubscribeModal.hidden = false;
+  document.body.classList.add('modal-open');
+  requestAnimationFrame(() => elements.calendarSubscribeClose?.focus());
+}
+
+function closeCalendarSubscribeModal() {
+  if (!elements.calendarSubscribeModal || elements.calendarSubscribeModal.hidden) return;
+  elements.calendarSubscribeModal.hidden = true;
+  document.body.classList.remove('modal-open');
+  elements.subscribeCalendarButton?.focus();
+}
 
 function applyFontLevel(level, save = true) {
   const safeLevel = Math.min(Math.max(Number(level) || 0, 0), FONT_LEVELS.length - 1);
@@ -689,6 +719,14 @@ document.querySelectorAll('.region-tab').forEach(button => button.addEventListen
 }));
 elements.fontSizeDecrease?.addEventListener('click', () => changeFontLevel(-1));
 elements.fontSizeIncrease?.addEventListener('click', () => changeFontLevel(1));
+elements.subscribeCalendarButton?.addEventListener('click', openCalendarSubscribeModal);
+elements.calendarSubscribeClose?.addEventListener('click', closeCalendarSubscribeModal);
+document.querySelectorAll('[data-subscribe-close]').forEach(button => {
+  button.addEventListener('click', closeCalendarSubscribeModal);
+});
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape') closeCalendarSubscribeModal();
+});
 elements.filterScrollLeft?.addEventListener('click', () => scrollFilters(-1));
 elements.filterScrollRight?.addEventListener('click', () => scrollFilters(1));
 elements.filters.addEventListener('scroll', updateFilterScrollGuide, { passive: true });
@@ -731,6 +769,7 @@ document.querySelector('#clearSearch').addEventListener('click', () => {
   document.querySelector('#keyword1').focus();
 });
 initializeFontLevel();
+initializeCalendarSubscription();
 const hasCache = loadCachedData();
 const forceRefresh = new URLSearchParams(window.location.search).has('refresh');
 loadData({ force: forceRefresh, showLoading: !hasCache });

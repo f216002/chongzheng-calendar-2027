@@ -15,7 +15,7 @@
   <title>寶光崇正2027年度全球行事曆</title>
   <link rel="preconnect" href="https://script.google.com">
   <link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=20260914-22">
+  <link rel="stylesheet" href="styles.css?v=20260917-1">
 </head>
 <body>
   <header class="topbar">
@@ -30,6 +30,28 @@
     <button id="floatingSpeechStop" type="button" aria-label="停止" title="停止">■</button>
   </div>
 
+  <div id="calendarSubscribeModal" class="calendar-subscribe-modal" hidden>
+    <button class="calendar-subscribe-backdrop" type="button" data-subscribe-close aria-label="關閉加入行事曆視窗"></button>
+    <section class="calendar-subscribe-dialog" role="dialog" aria-modal="true" aria-labelledby="calendarSubscribeTitle" aria-describedby="calendarSubscribeDescription">
+      <div class="calendar-subscribe-heading">
+        <h2 id="calendarSubscribeTitle">加入我的行事曆</h2>
+        <button id="calendarSubscribeClose" class="calendar-subscribe-close" type="button" aria-label="關閉">×</button>
+      </div>
+      <p id="calendarSubscribeDescription">選擇您平常使用的行事曆。訂閱後，公版活動更新時會自動同步。</p>
+      <div class="calendar-subscribe-options">
+        <a id="googleCalendarSubscribe" class="calendar-subscribe-option google" href="#" target="_blank" rel="noopener noreferrer">
+          <span class="calendar-subscribe-icon" aria-hidden="true">G</span>
+          <span><strong>Google 日曆</strong><small>Android、電腦或 Google 帳號</small></span>
+        </a>
+        <a id="appleCalendarSubscribe" class="calendar-subscribe-option apple" href="#">
+          <span class="calendar-subscribe-icon" aria-hidden="true"></span>
+          <span><strong>iPhone／Apple 日曆</strong><small>在 iPhone、iPad 或 Mac 訂閱</small></span>
+        </a>
+      </div>
+      <p class="calendar-subscribe-privacy">只加入公版活動；本網站不會讀取或上傳您的私人行程。</p>
+    </section>
+  </div>
+
   <main>
     <div class="top-controls-layout">
       <section class="control-panel" aria-labelledby="filterTitle">
@@ -37,7 +59,13 @@
         <div class="filter-heading-copy">
           <div class="filter-title-row">
             <h2 id="filterTitle">選擇要查看的行事曆</h2>
-            <button id="refreshButton" class="icon-button panel-refresh-button" type="button" aria-label="重新載入資料" title="更新資料">↻ <span>更新資料</span></button>
+            <div class="panel-heading-actions">
+              <button id="subscribeCalendarButton" class="subscribe-calendar-button" type="button" aria-haspopup="dialog" aria-controls="calendarSubscribeModal" title="加入我的行事曆">
+                <span class="subscribe-calendar-icon" aria-hidden="true">＋</span>
+                <span class="subscribe-calendar-label">加入我的行事曆</span>
+              </button>
+              <button id="refreshButton" class="icon-button panel-refresh-button" type="button" aria-label="重新載入資料" title="更新資料">↻ <span>更新資料</span></button>
+            </div>
           </div>
         </div>
       </div>
@@ -147,6 +175,6 @@
   </main>
 
   <footer>資料來源：寶光崇正道務中心 Google 試算表</footer>
-  <script src="app.js?v=20260914-7"></script>
+  <script src="app.js?v=20260917-1"></script>
 </body>
 </html>
