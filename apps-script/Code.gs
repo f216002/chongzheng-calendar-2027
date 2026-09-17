@@ -1,5 +1,5 @@
 /**
- * 寶光崇正整合行事曆：Google Sheet、網頁 API 與 Google Calendar 同步（v1.4）
+ * 寶光崇正整合行事曆：Google Sheet、網頁 API 與 Google Calendar 同步（v1.4.2）
  *
  * 使用位置：目標 Google 試算表的「擴充功能 → Apps Script」
  * 資料來源：保留原本 A:Q 欄的年度總表，不修改來源資料。
@@ -12,16 +12,17 @@ const 行事曆設定 = Object.freeze({
   分類設定表: '分類設定',
   系統設定表: '系統設定',
   Google同步索引表: 'Google日曆同步索引',
-  Google公版日曆ID: '1d311aa618934513387621d52ddaa5a4e15a5a894532b6aaeab89396fafca5e1@group.calendar.google.com',
   Google同步批次筆數: 60,
   時區: 'Asia/Taipei',
-  API版本: '1.4.0'
+  API版本: '1.4.2'
 });
 
 const Google同步屬性 = Object.freeze({
+  公版日曆ID: 'google_public_calendar_id',
   試算表ID: 'google_calendar_sync_spreadsheet_id',
   游標: 'google_calendar_sync_cursor',
   總筆數: 'google_calendar_sync_total',
+  重試輪次: 'google_calendar_sync_retry_round',
   最近狀態: 'google_calendar_sync_status'
 });
 
@@ -54,11 +55,36 @@ function onOpen() {
     .createMenu('寶光行事曆工具')
     .addItem('一鍵更新網頁＋Google公版日曆', '一鍵更新全部資料')
     .addItem('僅建立／更新網頁資料', '一鍵建立網頁資料')
+    .addItem('設定Google公版日曆ID', '設定Google公版日曆ID')
     .addItem('繼續Google日曆同步', '繼續Google日曆同步')
     .addSeparator()
     .addItem('查看資料統計', '查看資料統計')
     .addItem('查看Google日曆同步狀態', '查看Google日曆同步狀態')
     .addToUi();
+}
+
+/** 將私人日曆 ID 儲存在 Script Properties，不寫入公開原始碼或工作表。 */
+function 設定Google公版日曆ID() {
+  const ui = SpreadsheetApp.getUi();
+  const response = ui.prompt(
+    '設定 Google 公版日曆 ID',
+    '請貼上「寶光崇正2027年度全球行事曆」的日曆 ID：',
+    ui.ButtonSet.OK_CANCEL
+  );
+  if (response.getSelectedButton() !== ui.Button.OK) return;
+
+  const calendarId = response.getResponseText().trim();
+  if (!calendarId || !calendarId.includes('@')) {
+    ui.alert('日曆 ID 格式不正確，請從 Google 日曆「設定和共用 → 整合日曆」重新複製。');
+    return;
+  }
+  const calendar = CalendarApp.getCalendarById(calendarId);
+  if (!calendar) {
+    ui.alert('目前帳號找不到這個日曆，請確認 ID 與修改權限。');
+    return;
+  }
+  PropertiesService.getScriptProperties().setProperty(Google同步屬性.公版日曆ID, calendarId);
+  ui.alert('Google 公版日曆已設定完成：' + calendar.getName());
 }
 
 /**
@@ -282,7 +308,7 @@ function 寫入系統設定_(ss, source, eventCount) {
     ['events_sheet', 行事曆設定.活動資料表, '網頁讀取的標準化活動資料'],
     ['categories_sheet', 行事曆設定.分類設定表, '篩選名稱、顏色、預設狀態與順序'],
     ['timezone', 行事曆設定.時區, '日期與時間使用的時區'],
-    ['google_calendar_id', 行事曆設定.Google公版日曆ID, 'Google公版行事曆ID'],
+    ['google_calendar_sync', PropertiesService.getScriptProperties().getProperty(Google同步屬性.公版日曆ID) ? '已設定' : '未設定', 'Google公版日曆ID僅存於Script Properties'],
     ['api_version', 行事曆設定.API版本, 'Apps Script API版本'],
     ['event_count', eventCount, '最近一次產生的活動筆數'],
     ['last_updated', new Date(), '最近一次執行一鍵更新的時間']
@@ -322,6 +348,7 @@ function 啟動Google日曆同步() {
     [Google同步屬性.試算表ID]: ss.getId(),
     [Google同步屬性.游標]: '0',
     [Google同步屬性.總筆數]: String(events.length),
+    [Google同步屬性.重試輪次]: '0',
     [Google同步屬性.最近狀態]: '準備同步 0／' + events.length
   });
 
@@ -339,27 +366,31 @@ function 繼續Google日曆同步() {
 
   try {
     const ss = 取得Google同步試算表_();
-    const calendar = CalendarApp.getCalendarById(行事曆設定.Google公版日曆ID);
+    const calendar = CalendarApp.getCalendarById(取得Google公版日曆ID_());
     if (!calendar) throw new Error('找不到 Google 公版日曆，請檢查行事曆 ID 或帳號權限。');
 
     const events = 讀取Google同步活動_(ss);
     const index = 讀取Google同步索引_(ss);
     const properties = PropertiesService.getScriptProperties();
     const start = Math.max(0, Number(properties.getProperty(Google同步屬性.游標)) || 0);
-    const end = Math.min(start + 行事曆設定.Google同步批次筆數, events.length);
+    let end = start;
+    let attemptedWrites = 0;
     let created = 0;
     let updated = 0;
     let skipped = 0;
     const errors = [];
 
-    for (let i = start; i < end; i += 1) {
+    for (let i = start; i < events.length; i += 1) {
       const item = events[i];
+      end = i + 1;
       try {
         const existing = index.get(item.id);
         if (existing && existing.fingerprint === item.fingerprint) {
           skipped += 1;
           continue;
         }
+
+        attemptedWrites += 1;
 
         let calendarEvent = existing && existing.calendarEventId
           ? calendar.getEventById(existing.calendarEventId)
@@ -387,6 +418,8 @@ function 繼續Google日曆同步() {
       } catch (error) {
         errors.push(item.id + '：' + error.message);
       }
+
+      if (attemptedWrites >= 行事曆設定.Google同步批次筆數) break;
     }
 
     寫入Google同步索引_(ss, index);
@@ -405,9 +438,29 @@ function 繼續Google日曆同步() {
       return;
     }
 
-    const deleted = 刪除Google日曆舊活動_(calendar, index, new Set(events.map(item => item.id)));
+    const currentIds = new Set(events.map(item => item.id));
+    const deleted = 刪除Google日曆舊活動_(calendar, index, currentIds);
     寫入Google同步索引_(ss, index);
+    const successful = events.filter(item => index.has(item.id)).length;
+    const missing = events.length - successful;
+
+    if (missing > 0) {
+      const retryRound = (Number(properties.getProperty(Google同步屬性.重試輪次)) || 0) + 1;
+      properties.setProperty(Google同步屬性.重試輪次, String(retryRound));
+      properties.setProperty(Google同步屬性.游標, '0');
+
+      const willRetry = retryRound <= 3;
+      const incompleteStatus = '同步尚未完整：成功 ' + successful + '／' + events.length +
+        '，尚缺 ' + missing + ' 筆。' +
+        (willRetry ? '已安排第 ' + retryRound + ' 次自動重試。' : '請稍後手動繼續同步。');
+      properties.setProperty(Google同步屬性.最近狀態, incompleteStatus);
+      ss.toast(incompleteStatus, '寶光行事曆', 10);
+      if (willRetry) 安排下一批Google同步_(5 * 60 * 1000);
+      return;
+    }
+
     properties.deleteProperty(Google同步屬性.游標);
+    properties.deleteProperty(Google同步屬性.重試輪次);
     properties.setProperty(
       Google同步屬性.最近狀態,
       '同步完成：' + events.length + ' 筆活動，清除 ' + deleted + ' 筆舊活動。'
@@ -431,6 +484,15 @@ function 查看Google日曆同步狀態() {
   const status = PropertiesService.getScriptProperties()
     .getProperty(Google同步屬性.最近狀態) || '尚未執行 Google 公版日曆同步。';
   SpreadsheetApp.getUi().alert(status);
+}
+
+function 取得Google公版日曆ID_() {
+  const calendarId = PropertiesService.getScriptProperties()
+    .getProperty(Google同步屬性.公版日曆ID);
+  if (!calendarId) {
+    throw new Error('尚未設定 Google 公版日曆 ID，請先從試算表選單執行「設定Google公版日曆ID」。');
+  }
+  return calendarId;
 }
 
 function 取得Google同步試算表_() {
@@ -542,11 +604,11 @@ function 刪除Google日曆舊活動_(calendar, index, currentIds) {
   return deleted;
 }
 
-function 安排下一批Google同步_() {
+function 安排下一批Google同步_(delayMs) {
   清除Google同步觸發器_();
   ScriptApp.newTrigger('繼續Google日曆同步')
     .timeBased()
-    .after(60 * 1000)
+    .after(delayMs || 60 * 1000)
     .create();
 }
 
