@@ -1,5 +1,5 @@
 /**
- * 寶光崇正整合行事曆：Google Sheet、網頁 API 與 Google Calendar 同步（v1.4.2）
+ * 寶光崇正整合行事曆：Google Sheet、網頁 API 與 Google Calendar 同步（v1.4.3）
  *
  * 使用位置：目標 Google 試算表的「擴充功能 → Apps Script」
  * 資料來源：保留原本 A:Q 欄的年度總表，不修改來源資料。
@@ -14,7 +14,7 @@ const 行事曆設定 = Object.freeze({
   Google同步索引表: 'Google日曆同步索引',
   Google同步批次筆數: 60,
   時區: 'Asia/Taipei',
-  API版本: '1.4.2'
+  API版本: '1.4.3'
 });
 
 const Google同步屬性 = Object.freeze({
@@ -178,6 +178,7 @@ function 轉換總表為活動資料_(sheet) {
   const raw = sheet.getRange(2, 1, lastRow - 1, 17).getValues();
   const display = sheet.getRange(2, 1, lastRow - 1, 17).getDisplayValues();
   const results = [];
+  const usedEventIds = new Set();
 
   raw.forEach((row, rowIndex) => {
     const sourceRow = rowIndex + 2;
@@ -192,9 +193,16 @@ function 轉換總表為活動資料_(sheet) {
       eventLines.forEach((eventName, lineIndex) => {
         const isAllClass = category.代碼 === 'center_classes' ||
           全部仙佛班關鍵字.some(keyword => eventName.includes(keyword));
+        const eventId = 建立唯一活動ID_(
+          usedEventIds,
+          isoDate,
+          category.代碼,
+          lineIndex + 1,
+          sourceRow
+        );
 
         results.push([
-          建立活動ID_(isoDate, category.代碼, lineIndex + 1),
+          eventId,
           new Date(isoDate + 'T12:00:00'),
           display[rowIndex][0],
           display[rowIndex][1],
@@ -243,6 +251,23 @@ function 日期轉ISO_(rawValue, displayValue) {
 
 function 建立活動ID_(isoDate, categoryCode, sequence) {
   return 'EVT-' + isoDate.replace(/-/g, '') + '-' + categoryCode + '-' + String(sequence).padStart(2, '0');
+}
+
+/**
+ * 同一天若在年度總表占用多列，保留第一筆既有 ID；後續同 ID 活動加入來源列編號。
+ * 如此可保留既有 Google 日曆索引，同時避免不同活動互相覆蓋。
+ */
+function 建立唯一活動ID_(usedEventIds, isoDate, categoryCode, sequence, sourceRow) {
+  const baseId = 建立活動ID_(isoDate, categoryCode, sequence);
+  let eventId = baseId;
+  if (usedEventIds.has(eventId)) eventId = baseId + '-R' + sourceRow;
+  let suffix = 2;
+  while (usedEventIds.has(eventId)) {
+    eventId = baseId + '-R' + sourceRow + '-' + suffix;
+    suffix += 1;
+  }
+  usedEventIds.add(eventId);
+  return eventId;
 }
 
 function 寫入活動資料_(ss, rows) {
@@ -516,7 +541,7 @@ function 讀取Google同步活動_(ss) {
   const rawRows = 資料列轉物件_(range.getValues());
   const displayRows = 資料列轉物件_(range.getDisplayValues());
 
-  return rawRows
+  const events = rawRows
     .map((raw, index) => ({ raw: raw, display: displayRows[index] || raw }))
     .filter(record => record.raw.enabled === true)
     .map(record => {
@@ -549,6 +574,17 @@ function 讀取Google同步活動_(ss) {
     })
     .filter(item => item.id && item.title)
     .sort((a, b) => a.date - b.date || a.order - b.order || a.id.localeCompare(b.id));
+
+  const uniqueIds = new Set(events.map(item => item.id));
+  if (uniqueIds.size !== events.length) {
+    throw new Error(
+      '活動識別碼仍有重複：共 ' + events.length +
+      ' 筆活動，但只有 ' + uniqueIds.size +
+      ' 個唯一 ID。請先重新執行「一鍵更新網頁＋Google公版日曆」。'
+    );
+  }
+
+  return events;
 }
 
 function 讀取Google同步索引_(ss) {
