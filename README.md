@@ -40,6 +40,7 @@
 - 使用 Google OAuth 2.0 `calendar.events.readonly` 與 `calendar.calendarlist.readonly` 唯讀權限，個人活動固定顯示於網頁右欄。
 - 只讀取 Google 日曆介面中已勾選的日曆；未勾選的日曆不會顯示。
 - 公版「寶光崇正2027年度全球行事曆」會依日曆 ID 與名稱自動排除，避免重複顯示。
+- 個人行事曆已連線時，按網頁「更新資料」会在原頁面同時重讀公版與個人日曆，不會重新登入；關閉或重新開啟網頁後才重新授權。
 - 個人活動及 OAuth 存取權杖只存在該使用者當次頁面的記憶體中。
 - 不會寫入 Google 試算表、Apps Script、GitHub、Cookie、`localStorage` 或公版資料快取。
 - 重新整理或關閉頁面後，存取權杖與個人活動立即清除。

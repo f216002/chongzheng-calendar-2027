@@ -34,6 +34,7 @@ const FONT_LEVELS = [
 let currentFontLevel = 1;
 let apiSlowTimer = null;
 let apiTimeoutTimer = null;
+let publicRefreshCompletion = null;
 const CORE_CODES = new Set(['center_classes', 'shared', 'all_classes']);
 const TAIWAN_CODES = new Set([
   'center_classes', 'shared', 'all_classes', 'center_routine',
@@ -159,12 +160,29 @@ function changeFontLevel(offset) {
 window.loadCalendarData = function (payload) {
   clearApiTimers();
   if (!payload || !payload.success) {
-    if (!state.hasRendered) showError(payload?.error || '資料格式不正確');
+    const error = new Error(payload?.error || '資料格式不正確');
+    if (!state.hasRendered) showError(error.message);
+    settlePublicRefresh(error);
     return;
   }
   applyCalendarData(payload, state.hasRendered);
   saveCachedData(payload);
+  settlePublicRefresh();
 };
+
+function settlePublicRefresh(error = null) {
+  if (!publicRefreshCompletion) return;
+  const completion = publicRefreshCompletion;
+  publicRefreshCompletion = null;
+  error ? completion.reject(error) : completion.resolve();
+}
+
+function refreshPublicCalendarData() {
+  return new Promise((resolve, reject) => {
+    publicRefreshCompletion = { resolve, reject };
+    loadData({ force: true, showLoading: false });
+  });
+}
 
 function applyCalendarData(payload, preserveView = false) {
   state.categories = [...payload.categories].map(normalizeCategory).sort((a, b) => a.order - b.order);
@@ -260,7 +278,9 @@ function loadData({ force = false, showLoading = !state.hasRendered } = {}) {
   script.src = `${API_URL}?callback=loadCalendarData${refreshToken}`;
   script.onerror = () => {
     clearApiTimers();
-    if (!state.hasRendered) showError('目前無法連接行事曆資料，請稍後再試。');
+    const error = new Error('目前無法連接行事曆資料，請稍後再試。');
+    if (!state.hasRendered) showError(error.message);
+    settlePublicRefresh(error);
   };
   document.body.appendChild(script);
 
@@ -271,9 +291,11 @@ function loadData({ force = false, showLoading = !state.hasRendered } = {}) {
   }, API_SLOW_NOTICE_MS);
 
   apiTimeoutTimer = setTimeout(() => {
+    const error = new Error('資料讀取逾時，請檢查網路後再試。');
     if (!state.hasRendered) {
-      showError('资料读取逾时，请检查网络后点击右上角「更新资料」重试。');
+      showError('資料讀取逾時，請檢查網路後點擊右上角「更新資料」重試。');
     }
+    settlePublicRefresh(error);
   }, API_TIMEOUT_MS);
 }
 
@@ -449,7 +471,9 @@ async function fetchGoogleCalendarJson(url) {
   });
   if (!response.ok) {
     const detail = await response.json().catch(() => null);
-    throw new Error(detail?.error?.message || `Google Calendar API 回應錯誤（${response.status}）`);
+    const error = new Error(detail?.error?.message || `Google Calendar API 回應錯誤（${response.status}）`);
+    error.status = response.status;
+    throw error;
   }
   return response.json();
 }
@@ -1041,19 +1065,48 @@ window.addEventListener('beforeunload', () => {
 });
 document.querySelector('#previousMonth').addEventListener('click', () => changeMonth(-1));
 document.querySelector('#nextMonth').addEventListener('click', () => changeMonth(1));
-document.querySelector('#refreshButton').addEventListener('click', () => {
+document.querySelector('#refreshButton').addEventListener('click', async () => {
   const button = document.querySelector('#refreshButton');
   const label = button.querySelector('span');
+  const refreshPersonal = hasValidPersonalToken();
   button.classList.add('is-refreshing');
   button.disabled = true;
   button.setAttribute('aria-busy', 'true');
   if (label) label.textContent = '更新中…';
   window.scrollTo({ top: 0, behavior: 'smooth' });
 
-  setTimeout(() => {
-    const cleanUrl = window.location.origin + window.location.pathname + '?refresh=' + Date.now();
-    window.location.replace(cleanUrl);
-  }, 450);
+  if (refreshPersonal) {
+    state.personalCalendarStatus = 'loading';
+    renderFilters();
+  }
+
+  const tasks = [refreshPublicCalendarData()];
+  if (refreshPersonal) tasks.push(loadPersonalCalendarEvents());
+  const results = await Promise.allSettled(tasks);
+
+  if (refreshPersonal) {
+    const personalResult = results[1];
+    if (personalResult?.status === 'rejected' && [401, 403].includes(personalResult.reason?.status)) {
+      clearPersonalCalendarSession();
+    } else {
+      state.personalCalendarStatus = 'connected';
+      renderFilters();
+      renderCalendar();
+    }
+  }
+
+  button.classList.remove('is-refreshing');
+  button.disabled = false;
+  button.removeAttribute('aria-busy');
+  if (label) label.textContent = '更新資料';
+
+  const failures = results.filter(result => result.status === 'rejected');
+  if (failures.length) {
+    const needsAuthorization = failures.some(result => [401, 403].includes(result.reason?.status));
+    window.alert(needsAuthorization
+      ? 'Google 個人行事曆授權已失效，請重新點選「個人行事曆」授權。'
+      : '部分資料暫時無法更新，已保留畫面中原有資料，請稍後再試。');
+  }
 });
 document.querySelector('#selectRegion').addEventListener('click', () => updateRegionSelection(true));
 document.querySelector('#clearRegion').addEventListener('click', () => updateRegionSelection(false));
