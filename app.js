@@ -2,6 +2,17 @@
 
 const API_URL = 'https://script.google.com/macros/s/AKfycbx11UqmZ_apamVa7FU5Dp46G9DNddfIeHaohjYFrasLNaZ0QcmDmIl2ZYVmOGihET44/exec';
 const PUBLIC_CALENDAR_ID = '1d311aa618934513387621d52ddaa5a4e15a5a894532b6aaeab89396fafca5e1@group.calendar.google.com';
+const GOOGLE_OAUTH_CLIENT_ID = '158183801546-e26ij2ngo43p5a6t0lbr38r76m3tupeo.apps.googleusercontent.com';
+const GOOGLE_CALENDAR_SCOPE = 'https://www.googleapis.com/auth/calendar.events.readonly';
+const PERSONAL_CALENDAR_CODE = 'personal_calendar';
+const PERSONAL_CALENDAR_CATEGORY = Object.freeze({
+  code: PERSONAL_CALENDAR_CODE,
+  name: '個人行事曆',
+  color: '#6f5aa8',
+  order: Number.MAX_SAFE_INTEGER,
+  defaultSelected: false,
+  virtual: true
+});
 const CENTER_CLASS_COLOR = '#B52D3A';
 const REGIONAL_CLASS_COLOR = '#EC625D';
 const DATA_CACHE_KEY = 'chongzheng-calendar-data-v2';
@@ -38,8 +49,13 @@ const REGIONAL_CLASS_KEYWORDS = [
 const state = {
   categories: [], events: [], selected: new Set(), month: null,
   activeRegion: 'taiwan', hasRendered: false,
-  speechDate: null
+  speechDate: null,
+  personalEvents: [],
+  personalAccessToken: '',
+  personalTokenExpiresAt: 0,
+  personalCalendarStatus: 'disconnected'
 };
+let personalTokenClient = null;
 const speechState = {
   queue: [], index: 0, playing: false, paused: false, lastYear: null
 };
@@ -257,7 +273,192 @@ function loadData({ force = false, showLoading = !state.hasRendered } = {}) {
 
 function categoriesForRegion(region = state.activeRegion) {
   const codes = region === 'global' ? GLOBAL_CODES : TAIWAN_CODES;
-  return state.categories.filter(category => codes.has(category.code));
+  return [
+    ...state.categories.filter(category => codes.has(category.code)),
+    PERSONAL_CALENDAR_CATEGORY
+  ];
+}
+
+function categoryByCode(code) {
+  return code === PERSONAL_CALENDAR_CODE
+    ? PERSONAL_CALENDAR_CATEGORY
+    : state.categories.find(item => item.code === code);
+}
+
+function hasValidPersonalToken() {
+  return Boolean(state.personalAccessToken && Date.now() < state.personalTokenExpiresAt);
+}
+
+function initializePersonalTokenClient() {
+  if (personalTokenClient) return true;
+  if (!window.google?.accounts?.oauth2) return false;
+  personalTokenClient = window.google.accounts.oauth2.initTokenClient({
+    client_id: GOOGLE_OAUTH_CLIENT_ID,
+    scope: GOOGLE_CALENDAR_SCOPE,
+    callback: handlePersonalTokenResponse,
+    error_callback: handlePersonalAuthError
+  });
+  return true;
+}
+
+function requestPersonalCalendarAccess() {
+  if (!initializePersonalTokenClient()) {
+    window.alert('Google 授權服務尚未載入，請確認網路後再試一次。');
+    renderFilters();
+    return;
+  }
+  state.personalCalendarStatus = 'authorizing';
+  renderFilters();
+  personalTokenClient.requestAccessToken({ prompt: 'consent' });
+}
+
+async function handlePersonalTokenResponse(response) {
+  if (!response?.access_token || response.error) {
+    handlePersonalAuthError(response);
+    return;
+  }
+  state.personalAccessToken = response.access_token;
+  state.personalTokenExpiresAt = Date.now() + Math.max(0, Number(response.expires_in || 3600) - 60) * 1000;
+  state.personalCalendarStatus = 'loading';
+  state.selected.add(PERSONAL_CALENDAR_CODE);
+  renderFilters();
+  try {
+    await loadPersonalCalendarEvents();
+    state.personalCalendarStatus = 'connected';
+    renderFilters();
+    renderCalendar();
+  } catch (error) {
+    console.error('讀取個人行事曆失敗：', error);
+    clearPersonalCalendarSession();
+    window.alert(error.message || '目前無法讀取個人行事曆，請稍後再試。');
+  }
+}
+
+function handlePersonalAuthError(error) {
+  console.warn('Google 個人行事曆授權未完成：', error);
+  clearPersonalCalendarSession();
+  if (error?.type !== 'popup_closed' && error?.error !== 'access_denied') {
+    window.alert('未完成 Google 個人行事曆授權，請再點選「個人行事曆」重試。');
+  }
+}
+
+function clearPersonalCalendarSession({ revoke = false } = {}) {
+  const token = state.personalAccessToken;
+  state.personalAccessToken = '';
+  state.personalTokenExpiresAt = 0;
+  state.personalEvents = [];
+  state.personalCalendarStatus = 'disconnected';
+  state.selected.delete(PERSONAL_CALENDAR_CODE);
+  if (revoke && token && window.google?.accounts?.oauth2) {
+    window.google.accounts.oauth2.revoke(token, () => {});
+  }
+  if (state.hasRendered) {
+    renderFilters();
+    renderCalendar();
+  }
+}
+
+function personalCalendarRange() {
+  const dates = state.events.map(event => event.date).filter(Boolean).sort();
+  const firstYear = Number((dates[0] || '2027-01-01').slice(0, 4));
+  const lastYear = Number((dates.at(-1) || '2027-12-31').slice(0, 4));
+  return {
+    timeMin: `${firstYear}-01-01T00:00:00Z`,
+    timeMax: `${lastYear + 1}-01-01T00:00:00Z`
+  };
+}
+
+async function loadPersonalCalendarEvents() {
+  if (!hasValidPersonalToken()) {
+    throw new Error('Google 授權已到期，請重新點選「個人行事曆」。');
+  }
+  const { timeMin, timeMax } = personalCalendarRange();
+  const items = [];
+  let pageToken = '';
+  do {
+    const url = new URL('https://www.googleapis.com/calendar/v3/calendars/primary/events');
+    url.searchParams.set('timeMin', timeMin);
+    url.searchParams.set('timeMax', timeMax);
+    url.searchParams.set('singleEvents', 'true');
+    url.searchParams.set('orderBy', 'startTime');
+    url.searchParams.set('maxResults', '2500');
+    url.searchParams.set('timeZone', Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Taipei');
+    if (pageToken) url.searchParams.set('pageToken', pageToken);
+    const response = await fetch(url, {
+      headers: { Authorization: `Bearer ${state.personalAccessToken}` },
+      cache: 'no-store'
+    });
+    if (!response.ok) {
+      const detail = await response.json().catch(() => null);
+      throw new Error(detail?.error?.message || `Google Calendar API 回應錯誤（${response.status}）`);
+    }
+    const payload = await response.json();
+    items.push(...(payload.items || []));
+    pageToken = payload.nextPageToken || '';
+  } while (pageToken);
+  state.personalEvents = items
+    .filter(item => item.status !== 'cancelled')
+    .flatMap(normalizePersonalEvent);
+}
+
+function normalizePersonalEvent(item) {
+  const summary = String(item.summary || '（無標題）').trim();
+  if (item.start?.date) {
+    const dates = datesBefore(item.start.date, item.end?.date || addIsoDays(item.start.date, 1));
+    return dates.map((date, index) => ({
+      id: `personal-${item.id}-${date}`,
+      name: summary,
+      date,
+      weekday: weekdayForDate(date),
+      lunar: '',
+      week: '',
+      category: PERSONAL_CALENDAR_CODE,
+      categoryName: '個人行事曆',
+      order: 900000 + index,
+      personal: true
+    }));
+  }
+  if (!item.start?.dateTime) return [];
+  const start = new Date(item.start.dateTime);
+  const { date, time } = localDateParts(start);
+  return [{
+    id: `personal-${item.id}-${date}`,
+    name: `${time} ${summary}`,
+    date,
+    weekday: weekdayForDate(date),
+    lunar: '',
+    week: '',
+    category: PERSONAL_CALENDAR_CODE,
+    categoryName: '個人行事曆',
+    order: start.getTime(),
+    personal: true
+  }];
+}
+
+function localDateParts(date) {
+  const parts = new Intl.DateTimeFormat('zh-TW', {
+    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Taipei',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hourCycle: 'h23'
+  }).formatToParts(date).reduce((result, part) => ({ ...result, [part.type]: part.value }), {});
+  return { date: `${parts.year}-${parts.month}-${parts.day}`, time: `${parts.hour}:${parts.minute}` };
+}
+
+function addIsoDays(date, count) {
+  const value = new Date(`${date}T00:00:00Z`);
+  value.setUTCDate(value.getUTCDate() + count);
+  return value.toISOString().slice(0, 10);
+}
+
+function datesBefore(start, exclusiveEnd) {
+  const dates = [];
+  for (let date = start; date < exclusiveEnd; date = addIsoDays(date, 1)) dates.push(date);
+  return dates;
+}
+
+function weekdayForDate(date) {
+  return new Intl.DateTimeFormat('zh-TW', { weekday: 'short', timeZone: 'UTC' })
+    .format(new Date(`${date}T12:00:00Z`));
 }
 
 function renderRegionTabs() {
@@ -273,17 +474,49 @@ function renderFilters() {
   elements.filters.replaceChildren(...categoriesForRegion().map(category => {
     const wrapper = document.createElement('div');
     wrapper.className = 'filter-chip';
+    if (category.code === PERSONAL_CALENDAR_CODE) {
+      wrapper.classList.add('personal-calendar-chip');
+      wrapper.classList.toggle('is-connected', hasValidPersonalToken());
+      wrapper.classList.toggle('is-loading', ['loading', 'authorizing'].includes(state.personalCalendarStatus));
+    }
     wrapper.style.setProperty('--chip-color', categoryDisplayColor(category));
     const input = document.createElement('input');
     input.type = 'checkbox'; input.id = `filter-${state.activeRegion}-${category.code}`; input.value = category.code;
     input.checked = state.selected.has(category.code);
     input.addEventListener('change', () => {
+      if (category.code === PERSONAL_CALENDAR_CODE && input.checked && !hasValidPersonalToken()) {
+        input.checked = false;
+        requestPersonalCalendarAccess();
+        return;
+      }
       input.checked ? state.selected.add(category.code) : state.selected.delete(category.code);
       renderCalendar();
     });
     const label = document.createElement('label');
-    label.htmlFor = input.id; label.textContent = category.name;
+    label.htmlFor = input.id;
+    label.textContent = category.code === PERSONAL_CALENDAR_CODE && !hasValidPersonalToken()
+      ? `🔒 ${category.name}`
+      : category.name;
+    if (category.code === PERSONAL_CALENDAR_CODE) {
+      label.title = hasValidPersonalToken()
+        ? '只在本機暫時顯示您的 Google 個人行事曆'
+        : '點選後授權讀取您的 Google 個人行事曆';
+    }
     wrapper.append(input, label);
+    if (category.code === PERSONAL_CALENDAR_CODE && hasValidPersonalToken()) {
+      const disconnect = document.createElement('button');
+      disconnect.type = 'button';
+      disconnect.className = 'personal-calendar-disconnect';
+      disconnect.textContent = '×';
+      disconnect.title = '解除個人行事曆連結';
+      disconnect.setAttribute('aria-label', '解除個人行事曆連結');
+      disconnect.addEventListener('click', event => {
+        event.preventDefault();
+        event.stopPropagation();
+        clearPersonalCalendarSession({ revoke: true });
+      });
+      wrapper.append(disconnect);
+    }
     return wrapper;
   }));
   elements.filters.scrollLeft = 0;
@@ -329,7 +562,7 @@ function matchesAdvancedSearch(event) {
   const [firstTerm, secondTerm] = terms;
   if (!firstTerm && !secondTerm) return true;
 
-  const category = state.categories.find(item => item.code === event.category);
+  const category = categoryByCode(event.category);
   const haystack = [
     event.name, event.date, event.dateDisplay, event.week, event.weekday, event.lunar,
     event.venue, event.categoryName, category?.name, conciseEventLabel(event, category)
@@ -347,7 +580,7 @@ function matchesAdvancedSearch(event) {
 
 function getVisibleEvents() {
   const searching = hasActiveSearch();
-  return state.events.filter(event =>
+  return [...state.events, ...state.personalEvents].filter(event =>
     (searching || event.date.startsWith(state.month)) &&
     isVisible(event) &&
     matchesAdvancedSearch(event)
@@ -419,8 +652,9 @@ function createEventColumn(title, className) {
 }
 
 function createEvent(event) {
-  const category = state.categories.find(item => item.code === event.category);
+  const category = categoryByCode(event.category);
   const item = document.createElement('div'); item.className = 'event';
+  if (event.personal) item.classList.add('personal-event');
   item.dataset.eventId = String(event.id || event.event_id || `${event.date}-${event.order}-${event.name}`);
   item.style.setProperty('--event-color', eventDisplayColor(event, category));
   const name = document.createElement('p'); name.className = 'event-name'; name.textContent = event.name;
@@ -430,6 +664,7 @@ function createEvent(event) {
 }
 
 function conciseEventLabel(event, category) {
+  if (event.category === PERSONAL_CALENDAR_CODE) return '個人行事曆';
   const eventName = String(event.name || '');
   if (eventName.startsWith('印尼棉蘭')) return '印尼棉蘭';
   if (eventName.startsWith('孟加拉')) return '孟加拉';
@@ -701,14 +936,19 @@ function changeMonth(offset) {
 }
 
 function updateRegionSelection(select) {
-  categoriesForRegion().forEach(category => select ? state.selected.add(category.code) : state.selected.delete(category.code));
+  categoriesForRegion().forEach(category => {
+    if (category.code === PERSONAL_CALENDAR_CODE && !hasValidPersonalToken()) return;
+    select ? state.selected.add(category.code) : state.selected.delete(category.code);
+  });
   renderFilters(); renderCalendar();
 }
 
 function resetToDefaultSelection() {
+  const keepPersonalCalendar = state.selected.has(PERSONAL_CALENDAR_CODE) && hasValidPersonalToken();
   state.selected = new Set(
     state.categories.filter(category => category.defaultSelected).map(category => category.code)
   );
+  if (keepPersonalCalendar) state.selected.add(PERSONAL_CALENDAR_CODE);
 }
 
 document.querySelectorAll('.region-tab').forEach(button => button.addEventListener('click', () => {
@@ -737,7 +977,11 @@ document.querySelector('#speechStop').addEventListener('click', () => stopSpeech
 elements.floatingSpeechPlay?.addEventListener('click', startSpeech);
 elements.floatingSpeechPause?.addEventListener('click', toggleSpeechPause);
 elements.floatingSpeechStop?.addEventListener('click', () => stopSpeech(true));
-window.addEventListener('beforeunload', () => stopSpeech(false));
+window.addEventListener('beforeunload', () => {
+  stopSpeech(false);
+  state.personalAccessToken = '';
+  state.personalEvents = [];
+});
 document.querySelector('#previousMonth').addEventListener('click', () => changeMonth(-1));
 document.querySelector('#nextMonth').addEventListener('click', () => changeMonth(1));
 document.querySelector('#refreshButton').addEventListener('click', () => {

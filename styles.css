@@ -90,6 +90,14 @@ main { width: min(1420px, calc(100% - 2rem)); margin: 1.2rem auto 3rem; }
 .column-empty::after { content: "本日無活動"; display: block; padding: 1.25rem .5rem; color: #9aaab5; text-align: center; font-size: .8rem; }
 .empty { padding: 3rem 1rem; text-align: center; color: var(--muted); background: white; border: 1px dashed #bdccd4; border-radius: 1rem; }
 footer { padding: 1rem; text-align: center; color: var(--muted); font-size: .82rem; }
+footer a { color: var(--brand); text-underline-offset: .18em; }
+
+.privacy-page { width: min(760px, calc(100% - 2rem)); margin: 2rem auto 4rem; }
+.privacy-card { padding: clamp(1rem, 4vw, 2rem); background: white; border: 1px solid var(--line); border-top: 5px solid var(--accent); border-radius: 1rem; box-shadow: 0 12px 36px rgba(27,54,73,.08); }
+.privacy-card h2 { margin-top: 1.6rem; color: var(--brand-dark); font-size: 1.12rem; }
+.privacy-card p, .privacy-card li { line-height: 1.8; }
+.privacy-card a { color: var(--brand); }
+.privacy-back { display: inline-flex; margin-top: 1.5rem; padding: .65rem 1rem; color: white; background: var(--brand); border-radius: .7rem; text-decoration: none; font-weight: 700; }
 
 @media (max-width: 760px) {
   .topbar { min-height: 92px; }
@@ -1545,4 +1553,49 @@ body.modal-open { overflow: hidden; }
     padding-inline: 7px;
     font-size: 14px;
   }
+}
+
+/* 個人 Google 行事曆：授權後僅在本次瀏覽器工作階段顯示 */
+.personal-calendar-chip {
+  display: inline-flex;
+  align-items: center;
+}
+
+.personal-calendar-chip label {
+  padding-right: .9rem;
+  border-style: dashed;
+}
+
+.personal-calendar-chip.is-connected label {
+  border-style: solid;
+}
+
+.personal-calendar-chip.is-loading label {
+  cursor: wait;
+  opacity: .68;
+}
+
+.personal-calendar-disconnect {
+  z-index: 1;
+  width: 27px;
+  height: 27px;
+  margin-left: -34px;
+  margin-right: 5px;
+  padding: 0;
+  color: currentColor;
+  background: rgba(255, 255, 255, .82);
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 800;
+  line-height: 27px;
+}
+
+.personal-calendar-chip input:checked + label {
+  padding-right: 2.45rem;
+}
+
+.personal-event {
+  background: linear-gradient(100deg, color-mix(in srgb, var(--event-color), white 88%), white 52%);
 }
