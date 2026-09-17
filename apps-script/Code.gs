@@ -1,5 +1,5 @@
 /**
- * 寶光崇正整合行事曆：Google Sheet、網頁 API 與 Google Calendar 同步（v1.4.3）
+ * 寶光崇正整合行事曆：Google Sheet、網頁 API 與 Google Calendar 同步（v1.4.4）
  *
  * 使用位置：目標 Google 試算表的「擴充功能 → Apps Script」
  * 資料來源：保留原本 A:Q 欄的年度總表，不修改來源資料。
@@ -14,7 +14,7 @@ const 行事曆設定 = Object.freeze({
   Google同步索引表: 'Google日曆同步索引',
   Google同步批次筆數: 60,
   時區: 'Asia/Taipei',
-  API版本: '1.4.3'
+  API版本: '1.4.4'
 });
 
 const Google同步屬性 = Object.freeze({
@@ -347,7 +347,10 @@ function 寫入系統設定_(ss, source, eventCount) {
   sheet.setColumnWidth(2, 310);
   sheet.setColumnWidth(3, 450);
   sheet.getRange('B:B').setWrap(true);
-  sheet.getRange(rows.length, 2).setNumberFormat('yyyy-mm-dd hh:mm:ss');
+  const eventCountRow = rows.findIndex(row => row[0] === 'event_count') + 1;
+  const lastUpdatedRow = rows.findIndex(row => row[0] === 'last_updated') + 1;
+  if (eventCountRow > 0) sheet.getRange(eventCountRow, 2).setNumberFormat('0');
+  if (lastUpdatedRow > 0) sheet.getRange(lastUpdatedRow, 2).setNumberFormat('yyyy-mm-dd hh:mm:ss');
 }
 
 function 查看資料統計() {
