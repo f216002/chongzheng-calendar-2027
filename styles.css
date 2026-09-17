@@ -97,7 +97,7 @@ footer a { color: var(--brand); text-underline-offset: .18em; }
 .privacy-card h2 { margin-top: 1.6rem; color: var(--brand-dark); font-size: 1.12rem; }
 .privacy-card p, .privacy-card li { line-height: 1.8; }
 .privacy-card a { color: var(--brand); }
-.privacy-back { display: inline-flex; margin-top: 1.5rem; padding: .65rem 1rem; color: white; background: var(--brand); border-radius: .7rem; text-decoration: none; font-weight: 700; }
+.privacy-card a.privacy-back { display: inline-flex; margin-top: 1.5rem; padding: .65rem 1rem; color: #fff; background: var(--brand); border-radius: .7rem; text-decoration: none; font-weight: 700; }
 
 @media (max-width: 760px) {
   .topbar { min-height: 92px; }
