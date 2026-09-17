@@ -3,7 +3,13 @@
 const API_URL = 'https://script.google.com/macros/s/AKfycbx11UqmZ_apamVa7FU5Dp46G9DNddfIeHaohjYFrasLNaZ0QcmDmIl2ZYVmOGihET44/exec';
 const PUBLIC_CALENDAR_ID = '1d311aa618934513387621d52ddaa5a4e15a5a894532b6aaeab89396fafca5e1@group.calendar.google.com';
 const GOOGLE_OAUTH_CLIENT_ID = '158183801546-e26ij2ngo43p5a6t0lbr38r76m3tupeo.apps.googleusercontent.com';
-const GOOGLE_CALENDAR_SCOPE = 'https://www.googleapis.com/auth/calendar.events.readonly';
+const GOOGLE_CALENDAR_SCOPES = [
+  'https://www.googleapis.com/auth/calendar.events.readonly',
+  'https://www.googleapis.com/auth/calendar.calendarlist.readonly'
+].join(' ');
+const PUBLIC_CALENDAR_TITLES = new Set([
+  '寶光崇正2027年度全球行事曆'
+]);
 const PERSONAL_CALENDAR_CODE = 'personal_calendar';
 const PERSONAL_CALENDAR_CATEGORY = Object.freeze({
   code: PERSONAL_CALENDAR_CODE,
@@ -294,7 +300,7 @@ function initializePersonalTokenClient() {
   if (!window.google?.accounts?.oauth2) return false;
   personalTokenClient = window.google.accounts.oauth2.initTokenClient({
     client_id: GOOGLE_OAUTH_CLIENT_ID,
-    scope: GOOGLE_CALENDAR_SCOPE,
+    scope: GOOGLE_CALENDAR_SCOPES,
     callback: handlePersonalTokenResponse,
     error_callback: handlePersonalAuthError
   });
@@ -373,10 +379,55 @@ async function loadPersonalCalendarEvents() {
     throw new Error('Google 授權已到期，請重新點選「個人行事曆」。');
   }
   const { timeMin, timeMax } = personalCalendarRange();
+  const calendars = await loadSelectedPersonalCalendars();
+  const eventGroups = await Promise.all(calendars.map(async calendar => {
+    try {
+      return { calendar, items: await loadCalendarEvents(calendar.id, timeMin, timeMax) };
+    } catch (error) {
+      console.warn(`略過無法讀取的日曆：${calendar.summary || calendar.id}`, error);
+      return { calendar, items: [] };
+    }
+  }));
+  state.personalEvents = eventGroups.flatMap(({ calendar, items }) => items
+    .filter(item => item.status !== 'cancelled')
+    .flatMap(item => normalizePersonalEvent(item, calendar)));
+}
+
+async function loadSelectedPersonalCalendars() {
+  const calendars = [];
+  let pageToken = '';
+  do {
+    const url = new URL('https://www.googleapis.com/calendar/v3/users/me/calendarList');
+    url.searchParams.set('maxResults', '250');
+    url.searchParams.set('showDeleted', 'false');
+    url.searchParams.set('showHidden', 'false');
+    if (pageToken) url.searchParams.set('pageToken', pageToken);
+    const payload = await fetchGoogleCalendarJson(url);
+    calendars.push(...(payload.items || []).filter(calendar =>
+      calendar.selected === true && !isPublicCalendar(calendar)
+    ));
+    pageToken = payload.nextPageToken || '';
+  } while (pageToken);
+  return calendars;
+}
+
+function isPublicCalendar(calendar) {
+  if (String(calendar.id || '').toLowerCase() === PUBLIC_CALENDAR_ID.toLowerCase()) return true;
+  const titles = [calendar.summary, calendar.summaryOverride]
+    .map(normalizeCalendarTitle)
+    .filter(Boolean);
+  return titles.some(title => PUBLIC_CALENDAR_TITLES.has(title));
+}
+
+function normalizeCalendarTitle(value) {
+  return String(value || '').replace(/\s+/g, '').trim();
+}
+
+async function loadCalendarEvents(calendarId, timeMin, timeMax) {
   const items = [];
   let pageToken = '';
   do {
-    const url = new URL('https://www.googleapis.com/calendar/v3/calendars/primary/events');
+    const url = new URL(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events`);
     url.searchParams.set('timeMin', timeMin);
     url.searchParams.set('timeMax', timeMax);
     url.searchParams.set('singleEvents', 'true');
@@ -384,29 +435,33 @@ async function loadPersonalCalendarEvents() {
     url.searchParams.set('maxResults', '2500');
     url.searchParams.set('timeZone', Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Taipei');
     if (pageToken) url.searchParams.set('pageToken', pageToken);
-    const response = await fetch(url, {
-      headers: { Authorization: `Bearer ${state.personalAccessToken}` },
-      cache: 'no-store'
-    });
-    if (!response.ok) {
-      const detail = await response.json().catch(() => null);
-      throw new Error(detail?.error?.message || `Google Calendar API 回應錯誤（${response.status}）`);
-    }
-    const payload = await response.json();
+    const payload = await fetchGoogleCalendarJson(url);
     items.push(...(payload.items || []));
     pageToken = payload.nextPageToken || '';
   } while (pageToken);
-  state.personalEvents = items
-    .filter(item => item.status !== 'cancelled')
-    .flatMap(normalizePersonalEvent);
+  return items;
 }
 
-function normalizePersonalEvent(item) {
+async function fetchGoogleCalendarJson(url) {
+  const response = await fetch(url, {
+    headers: { Authorization: `Bearer ${state.personalAccessToken}` },
+    cache: 'no-store'
+  });
+  if (!response.ok) {
+    const detail = await response.json().catch(() => null);
+    throw new Error(detail?.error?.message || `Google Calendar API 回應錯誤（${response.status}）`);
+  }
+  return response.json();
+}
+
+function normalizePersonalEvent(item, calendar = {}) {
   const summary = String(item.summary || '（無標題）').trim();
+  const calendarKey = encodeURIComponent(String(calendar.id || 'primary'));
+  const calendarName = String(calendar.summaryOverride || calendar.summary || '個人行事曆').trim();
   if (item.start?.date) {
     const dates = datesBefore(item.start.date, item.end?.date || addIsoDays(item.start.date, 1));
     return dates.map((date, index) => ({
-      id: `personal-${item.id}-${date}`,
+      id: `personal-${calendarKey}-${item.id}-${date}`,
       name: summary,
       date,
       weekday: weekdayForDate(date),
@@ -415,14 +470,15 @@ function normalizePersonalEvent(item) {
       category: PERSONAL_CALENDAR_CODE,
       categoryName: '個人行事曆',
       order: 900000 + index,
-      personal: true
+      personal: true,
+      personalCalendarName: calendarName
     }));
   }
   if (!item.start?.dateTime) return [];
   const start = new Date(item.start.dateTime);
   const { date, time } = localDateParts(start);
   return [{
-    id: `personal-${item.id}-${date}`,
+    id: `personal-${calendarKey}-${item.id}-${date}`,
     name: `${time} ${summary}`,
     date,
     weekday: weekdayForDate(date),
@@ -431,7 +487,8 @@ function normalizePersonalEvent(item) {
     category: PERSONAL_CALENDAR_CODE,
     categoryName: '個人行事曆',
     order: start.getTime(),
-    personal: true
+    personal: true,
+    personalCalendarName: calendarName
   }];
 }
 
