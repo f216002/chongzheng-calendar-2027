@@ -3,52 +3,45 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="description" content="寶光崇正2027年度全球行事曆個人行事曆隱私權說明">
+  <meta name="description" content="寶光崇正2027年度全球行事曆隱私權說明">
   <meta name="theme-color" content="#087f8c">
-  <title>個人行事曆隱私權說明</title>
-  <link rel="stylesheet" href="styles.css?v=20261021-1">
+  <title>隱私權說明</title>
+  <link rel="stylesheet" href="styles.css?v=20261021-2">
 </head>
 <body>
   <header class="topbar">
-    <div class="topbar-title"><h1>個人行事曆隱私權說明</h1></div>
+    <div class="topbar-title"><h1>隱私權說明</h1></div>
   </header>
   <main class="privacy-page">
     <article class="privacy-card">
-      <p>寶光崇正2027年度全球行事曆提供選用的 Google 個人行事曆合併顯示功能。使用者必須主動點選「個人行事曆」並完成 Google 授權後，網頁才會讀取資料。</p>
+      <p>寶光崇正2027年度全球行事曆需以 Google 帳號登入，並經管理員核准後才能使用。本頁說明登入資料與「私人」行程的處理方式。</p>
 
-      <h2>存取範圍</h2>
-      <p>本功能只申請 <code>calendar.events.readonly</code> 與 <code>calendar.calendarlist.readonly</code> 唯讀權限：前者用來顯示活動名稱、日期與時間，後者只用來判斷 Google 日曆介面中哪些日曆已勾選。網頁不能新增、修改或刪除任何個人活動。</p>
+      <h2>登入與審核</h2>
+      <ul>
+        <li>使用者以 Google 帳號登入後，系統會記錄其姓名、電子郵件與大頭貼網址，建立一筆使用申請。</li>
+        <li>管理員（f216002@gmail.com）核准後，使用者才能查看行事曆內容；未核准前，網頁不會載入任何行事曆資料。</li>
+        <li>管理員可以停用或移除任何使用者的資格；被拒絕或停用的帳號無法使用本網站。</li>
+      </ul>
+
+      <h2>「私人」行程</h2>
+      <ul>
+        <li>使用者可透過「新增行事曆」建立自己的私人行程（內容、日期、時間、地點）。</li>
+        <li>私人行程儲存在該使用者個人的帳號空間（Firestore 的 cal_users/{使用者}/privateEvents），每一位使用者只能看到與修改自己的私人行程，不會與其他人的行程混在一起。</li>
+        <li>私人行程只有使用者本人與管理員可以存取；本網站不會將私人行程提供給其他使用者或第三方。</li>
+        <li>使用者可在行程上按 × 自行刪除自己的私人行程，刪除後即無法復原。</li>
+      </ul>
 
       <h2>資料使用與保存</h2>
       <ul>
-        <li>只合併顯示 Google 日曆介面中已勾選的日曆；未勾選的日曆不會顯示。</li>
-        <li>公版「寶光崇正2027年度全球行事曆」會依日曆 ID 與名稱自動排除，避免與網頁公版活動重複。</li>
-        <li>個人活動只在使用者自己的瀏覽器中合併顯示。</li>
-        <li>個人活動與 OAuth 存取權杖只存在當次頁面的暫存記憶體。</li>
-        <li>本網站不會將個人活動傳送或寫入 Google 試算表、Apps Script、GitHub 或其他伺服器。</li>
-        <li>本網站不會把個人活動或存取權杖寫入 Cookie、localStorage 或公版行事曆快取。</li>
-        <li>使用瀏覽器本身的重新整理、關閉或重新開啟頁面後，個人活動與存取權杖即會清除。</li>
-        <li>使用網頁內的「更新資料」按鈕不會重新載入整個頁面，因此頁面仍開啟且授權有效時，可以直接同步最新公版與個人活動。</li>
-      </ul>
-
-      <h2>「私人」行程（本機新增）</h2>
-      <p>網頁另提供「新增行事曆」功能，讓使用者自行新增私人行程。私人行程只儲存在使用者自己裝置的瀏覽器本機儲存空間（localStorage），不會上傳至任何伺服器，也不會同步到其他裝置；清除瀏覽器資料或更換裝置後即會消失。私人行程只在該裝置上以「私人」分類顯示，其他人無法看到。</p>
-
-      <h2>資料分享與用途限制</h2>
-      <ul>
-        <li>Google 使用者資料只用於使用者主動啟用的「個人行事曆」合併顯示功能，不用於廣告、分析、建立使用者輪廓或其他用途。</li>
-        <li>本網站不會出售、出租或分享 Google 使用者資料給第三方，也不允許人工查看使用者的個人活動。</li>
-        <li>本網站從 Google API 取得資訊時，遵守 <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener noreferrer">Google API Services User Data Policy</a>，包括 Limited Use 規定。</li>
+        <li>登入與私人行程資料僅用於本網站的身分確認與行程顯示，不用於廣告、分析或建立使用者輪廓，也不會出售或出租給第三方。</li>
+        <li>公版行事曆資料來自寶光崇正道務中心的 Google 試算表，登入後才提供讀取。</li>
       </ul>
 
       <h2>解除授權</h2>
-      <p>使用者可以按「個人行事曆」旁的 × 解除連結，也可以到 <a href="https://myaccount.google.com/connections" target="_blank" rel="noopener noreferrer">Google 帳戶的第三方應用程式存取設定</a>撤銷授權。撤銷或關閉頁面後，本網站即無法再讀取該帳號的個人日曆資料。</p>
-
-      <h2>適用範圍</h2>
-      <p>本功能讀取已授權 Google 帳號中已勾選的 Google 日曆，不會讀取未勾選、只存在 Apple iCloud 或手機本機、且未同步至 Google 的行事曆。</p>
+      <p>使用者可隨時按帳號列的「登出」結束登入；如需刪除帳號資料或私人行程，請聯繫管理員，或由<a href="https://github.com/f216002/chongzheng-calendar-2027/issues" target="_blank" rel="noopener noreferrer">專案問題回報頁面</a>提出。</p>
 
       <h2>政策更新與聯絡</h2>
-      <p>本政策最後更新日期為 2026 年 10 月 21 日。若對個人行事曆資料使用有疑問，可由<a href="https://github.com/f216002/chongzheng-calendar-2027/issues" target="_blank" rel="noopener noreferrer">專案問題回報頁面</a>聯絡維護者。</p>
+      <p>本政策最後更新日期為 2026 年 10 月 21 日。若對資料使用有疑問，可由<a href="https://github.com/f216002/chongzheng-calendar-2027/issues" target="_blank" rel="noopener noreferrer">專案問題回報頁面</a>聯絡維護者。</p>
 
       <a class="privacy-back" href="./" style="color:#ffffff !important;-webkit-text-fill-color:#ffffff !important;opacity:1 !important;"><span style="color:#ffffff !important;-webkit-text-fill-color:#ffffff !important;">返回全球行事曆</span></a>
     </article>
