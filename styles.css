@@ -1189,6 +1189,15 @@ footer {
   display: none;
 }
 
+@keyframes refreshPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.panel-refresh-button.is-refreshing {
+  animation: refreshPulse 0.9s ease-in-out infinite;
+}
+
 .panel-refresh-button:hover {
   background: #e5f6f8;
 }
