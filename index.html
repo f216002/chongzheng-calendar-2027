@@ -16,7 +16,7 @@
   <title>寶光崇正2027年度全球行事曆</title>
   <link rel="preconnect" href="https://script.google.com">
   <link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=20261021-3">
+  <link rel="stylesheet" href="styles.css?v=20261021-4">
 </head>
 <body>
   <div id="authGate" class="auth-gate">
@@ -40,6 +40,7 @@
     <span id="calAccountName" class="account-name"></span>
     <span id="calAccountEmail" class="account-email"></span>
     <span class="account-spacer"></span>
+    <button id="calExportMine" class="account-button" type="button">匯出我的行程</button>
     <button id="calAdminButton" class="account-button admin" type="button" hidden>審核管理</button>
     <button class="account-button" type="button" data-cal-sign-out>登出</button>
   </div>
@@ -64,6 +65,13 @@
       <div id="adminPendingList" class="admin-list"></div>
       <h3 class="admin-section-title">已核准使用者</h3>
       <div id="adminApprovedList" class="admin-list"></div>
+      <h3 class="admin-section-title">私人行程總覽（僅管理員）</h3>
+      <div class="admin-overview-actions">
+        <button id="adminOverviewLoad" class="account-button" type="button">載入總覽</button>
+        <button id="adminExportAll" class="account-button" type="button" disabled>匯出全部（CSV）</button>
+      </div>
+      <p id="adminOverviewStatus" class="admin-status" aria-live="polite"></p>
+      <div id="adminOverviewList" class="admin-overview-list"></div>
     </section>
   </div>
 
@@ -263,9 +271,9 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-  <script src="cal-auth.js?v=20261021-3"></script>
-  <script src="cal-access.js?v=20261021-3"></script>
-  <script src="cal-admin.js?v=20261021-3"></script>
-  <script src="app.js?v=20261021-3"></script>
+  <script src="cal-auth.js?v=20261021-4"></script>
+  <script src="cal-access.js?v=20261021-4"></script>
+  <script src="cal-admin.js?v=20261021-4"></script>
+  <script src="app.js?v=20261021-4"></script>
 </body>
 </html>
