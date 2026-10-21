@@ -19,6 +19,16 @@ const PERSONAL_CALENDAR_CATEGORY = Object.freeze({
   defaultSelected: false,
   virtual: true
 });
+const PRIVATE_CALENDAR_CODE = 'private';
+const PRIVATE_CALENDAR_CATEGORY = Object.freeze({
+  code: PRIVATE_CALENDAR_CODE,
+  name: '私人',
+  color: '#8C5B28',
+  order: Number.MAX_SAFE_INTEGER,
+  defaultSelected: false,
+  virtual: true
+});
+const PRIVATE_STORAGE_KEY = 'chongzheng-private-events-v1';
 const CENTER_CLASS_COLOR = '#B52D3A';
 const REGIONAL_CLASS_COLOR = '#EC625D';
 const DATA_CACHE_KEY = 'chongzheng-calendar-data-v2';
@@ -58,6 +68,7 @@ const state = {
   activeRegion: 'taiwan', hasRendered: false,
   speechDate: null,
   personalEvents: [],
+  privateEvents: [],
   personalAccessToken: '',
   personalTokenExpiresAt: 0,
   personalCalendarStatus: 'disconnected'
@@ -88,7 +99,16 @@ const elements = {
   calendarSubscribeModal: document.querySelector('#calendarSubscribeModal'),
   calendarSubscribeClose: document.querySelector('#calendarSubscribeClose'),
   googleCalendarSubscribe: document.querySelector('#googleCalendarSubscribe'),
-  appleCalendarSubscribe: document.querySelector('#appleCalendarSubscribe')
+  appleCalendarSubscribe: document.querySelector('#appleCalendarSubscribe'),
+  addPrivateEventButton: document.querySelector('#addPrivateEventButton'),
+  privateEventModal: document.querySelector('#privateEventModal'),
+  privateEventClose: document.querySelector('#privateEventClose'),
+  privateEventForm: document.querySelector('#privateEventForm'),
+  privateTitle: document.querySelector('#privateTitle'),
+  privateDate: document.querySelector('#privateDate'),
+  privateStart: document.querySelector('#privateStart'),
+  privateEnd: document.querySelector('#privateEnd'),
+  privateLocation: document.querySelector('#privateLocation')
 };
 
 function initializeCalendarSubscription() {
@@ -189,6 +209,7 @@ function applyCalendarData(payload, preserveView = false) {
   state.events = payload.events.map(normalizeEvent).filter(event => event.date);
   if (!preserveView) {
     state.selected = new Set(state.categories.filter(item => item.defaultSelected).map(item => item.code));
+    if (state.privateEvents.length) state.selected.add(PRIVATE_CALENDAR_CODE);
     const firstDate = state.events.map(item => item.date).sort()[0] || '2027-01-01';
     state.month = firstDate.slice(0, 7);
   }
@@ -303,14 +324,15 @@ function categoriesForRegion(region = state.activeRegion) {
   const codes = region === 'global' ? GLOBAL_CODES : TAIWAN_CODES;
   return [
     ...state.categories.filter(category => codes.has(category.code)),
-    PERSONAL_CALENDAR_CATEGORY
+    PERSONAL_CALENDAR_CATEGORY,
+    PRIVATE_CALENDAR_CATEGORY
   ];
 }
 
 function categoryByCode(code) {
-  return code === PERSONAL_CALENDAR_CODE
-    ? PERSONAL_CALENDAR_CATEGORY
-    : state.categories.find(item => item.code === code);
+  if (code === PERSONAL_CALENDAR_CODE) return PERSONAL_CALENDAR_CATEGORY;
+  if (code === PRIVATE_CALENDAR_CODE) return PRIVATE_CALENDAR_CATEGORY;
+  return state.categories.find(item => item.code === code);
 }
 
 function hasValidPersonalToken() {
@@ -368,6 +390,103 @@ function handlePersonalAuthError(error) {
   if (error?.type !== 'popup_closed' && error?.error !== 'access_denied') {
     window.alert('未完成 Google 個人行事曆授權，請再點選「個人行事曆」重試。');
   }
+}
+
+let privateStore = [];
+
+function loadPrivateStore() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(PRIVATE_STORAGE_KEY) || '[]');
+    privateStore = Array.isArray(parsed) ? parsed.filter(item => item && item.date && item.title) : [];
+  } catch (error) {
+    console.warn('無法讀取私人行程：', error);
+    privateStore = [];
+  }
+}
+
+function persistPrivateStore() {
+  try {
+    localStorage.setItem(PRIVATE_STORAGE_KEY, JSON.stringify(privateStore));
+  } catch (error) {
+    console.warn('無法儲存私人行程：', error);
+    window.alert('儲存空間不足，私人行程未能存入這台裝置。');
+  }
+}
+
+function normalizePrivateEvent(raw) {
+  const timeText = raw.startTime && raw.endTime
+    ? `${raw.startTime}-${raw.endTime}` : (raw.startTime || raw.endTime || '');
+  const [hh, mm] = String(raw.startTime || '12:00').split(':').map(Number);
+  return {
+    id: `private-${raw.id}`,
+    rawId: raw.id,
+    name: String(raw.title || ''),
+    date: raw.date,
+    weekday: weekdayForDate(raw.date),
+    lunar: '',
+    week: '',
+    category: PRIVATE_CALENDAR_CODE,
+    categoryName: '私人',
+    order: 900000 + (Number.isFinite(hh) ? hh * 60 + (mm || 0) : 720),
+    privateLocal: true,
+    timeText,
+    location: String(raw.location || '')
+  };
+}
+
+function refreshPrivateEvents() {
+  state.privateEvents = privateStore.map(normalizePrivateEvent);
+}
+
+function removePrivateEvent(rawId) {
+  privateStore = privateStore.filter(item => item.id !== rawId);
+  persistPrivateStore();
+  refreshPrivateEvents();
+  renderCalendar();
+}
+
+function openPrivateEventModal() {
+  if (!elements.privateEventModal) return;
+  elements.privateEventForm?.reset();
+  const now = new Date();
+  const localToday = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  if (elements.privateDate) elements.privateDate.value = localToday;
+  elements.privateEventModal.hidden = false;
+  document.body.classList.add('modal-open');
+  requestAnimationFrame(() => elements.privateTitle?.focus());
+}
+
+function closePrivateEventModal() {
+  if (!elements.privateEventModal || elements.privateEventModal.hidden) return;
+  elements.privateEventModal.hidden = true;
+  document.body.classList.remove('modal-open');
+  elements.addPrivateEventButton?.focus();
+}
+
+function handlePrivateEventSubmit(submitEvent) {
+  submitEvent.preventDefault();
+  const title = elements.privateTitle.value.trim();
+  const date = elements.privateDate.value;
+  const startTime = elements.privateStart.value;
+  const endTime = elements.privateEnd.value;
+  const location = elements.privateLocation.value.trim();
+  if (!title || !date) return;
+  if (startTime && endTime && endTime <= startTime) {
+    window.alert('結束時間需晚於開始時間，請再確認。');
+    return;
+  }
+  privateStore.push({
+    id: `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`,
+    title, date, startTime, endTime, location,
+    createdAt: Date.now()
+  });
+  persistPrivateStore();
+  refreshPrivateEvents();
+  closePrivateEventModal();
+  state.selected.add(PRIVATE_CALENDAR_CODE);
+  state.month = date.slice(0, 7);
+  renderFilters();
+  renderCalendar();
 }
 
 function clearPersonalCalendarSession({ revoke = false } = {}) {
@@ -661,7 +780,7 @@ function matchesAdvancedSearch(event) {
 
 function getVisibleEvents() {
   const searching = hasActiveSearch();
-  return [...state.events, ...state.personalEvents].filter(event =>
+  return [...state.events, ...state.personalEvents, ...state.privateEvents].filter(event =>
     (searching || event.date.startsWith(state.month)) &&
     isVisible(event) &&
     matchesAdvancedSearch(event)
@@ -741,11 +860,33 @@ function createEvent(event) {
   const name = document.createElement('p'); name.className = 'event-name'; name.textContent = event.name;
   const categoryName = document.createElement('p'); categoryName.className = 'event-category';
   categoryName.textContent = conciseEventLabel(event, category);
-  item.append(name, categoryName); return item;
+  item.append(name, categoryName);
+  if (event.privateLocal) {
+    item.classList.add('private-event');
+    const metaParts = [event.timeText, event.location].filter(Boolean);
+    if (metaParts.length) {
+      const meta = document.createElement('p'); meta.className = 'event-meta';
+      meta.textContent = metaParts.join(' · ');
+      item.insertBefore(meta, categoryName);
+    }
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.className = 'private-event-delete';
+    remove.textContent = '×';
+    remove.title = '刪除這筆私人行程';
+    remove.setAttribute('aria-label', `刪除私人行程 ${event.name}`);
+    remove.addEventListener('click', clickEvent => {
+      clickEvent.stopPropagation();
+      if (window.confirm(`確定要刪除私人行程「${event.name}」嗎？`)) removePrivateEvent(event.rawId);
+    });
+    item.append(remove);
+  }
+  return item;
 }
 
 function conciseEventLabel(event, category) {
   if (event.category === PERSONAL_CALENDAR_CODE) return '個人行事曆';
+  if (event.category === PRIVATE_CALENDAR_CODE) return '私人';
   const eventName = String(event.name || '');
   if (eventName.startsWith('印尼棉蘭')) return '印尼棉蘭';
   if (eventName.startsWith('孟加拉')) return '孟加拉';
@@ -1026,10 +1167,12 @@ function updateRegionSelection(select) {
 
 function resetToDefaultSelection() {
   const keepPersonalCalendar = state.selected.has(PERSONAL_CALENDAR_CODE) && hasValidPersonalToken();
+  const keepPrivate = state.selected.has(PRIVATE_CALENDAR_CODE);
   state.selected = new Set(
     state.categories.filter(category => category.defaultSelected).map(category => category.code)
   );
   if (keepPersonalCalendar) state.selected.add(PERSONAL_CALENDAR_CODE);
+  if (keepPrivate) state.selected.add(PRIVATE_CALENDAR_CODE);
 }
 
 document.querySelectorAll('.region-tab').forEach(button => button.addEventListener('click', () => {
@@ -1046,8 +1189,17 @@ document.querySelectorAll('[data-subscribe-close]').forEach(button => {
   button.addEventListener('click', closeCalendarSubscribeModal);
 });
 document.addEventListener('keydown', event => {
-  if (event.key === 'Escape') closeCalendarSubscribeModal();
+  if (event.key === 'Escape') {
+    closeCalendarSubscribeModal();
+    closePrivateEventModal();
+  }
 });
+elements.addPrivateEventButton?.addEventListener('click', openPrivateEventModal);
+elements.privateEventClose?.addEventListener('click', closePrivateEventModal);
+document.querySelectorAll('[data-private-close]').forEach(button => {
+  button.addEventListener('click', closePrivateEventModal);
+});
+elements.privateEventForm?.addEventListener('submit', handlePrivateEventSubmit);
 elements.filterScrollLeft?.addEventListener('click', () => scrollFilters(-1));
 elements.filterScrollRight?.addEventListener('click', () => scrollFilters(1));
 elements.filters.addEventListener('scroll', updateFilterScrollGuide, { passive: true });
@@ -1124,6 +1276,8 @@ document.querySelector('#clearSearch').addEventListener('click', () => {
 });
 initializeFontLevel();
 initializeCalendarSubscription();
+loadPrivateStore();
+refreshPrivateEvents();
 const hasCache = loadCachedData();
 const forceRefresh = new URLSearchParams(window.location.search).has('refresh');
 loadData({ force: forceRefresh, showLoading: !hasCache });
