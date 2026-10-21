@@ -38,7 +38,7 @@ let publicRefreshCompletion = null;
 const CORE_CODES = new Set(['center_classes', 'shared', 'all_classes']);
 const TAIWAN_CODES = new Set([
   'center_classes', 'shared', 'all_classes', 'center_routine',
-  'jingming', 'dade', 'zhengzong', 'huade', 'north', 'tonghua', 'guangxiong'
+  'jingming', 'dade', 'zhengzong', 'huade', 'north', 'tonghua', 'guangxiong', 'guanghui', 'guangsheng'
 ]);
 const GLOBAL_CODES = new Set([
   'center_classes', 'shared', 'all_classes',
