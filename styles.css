@@ -1599,3 +1599,16 @@ body.modal-open { overflow: hidden; }
 .personal-event {
   background: linear-gradient(100deg, color-mix(in srgb, var(--event-color), white 88%), white 52%);
 }
+
+/* 私人行程（本機新增） */
+.private-event-form { display: grid; gap: 0.8rem; margin-top: 0.6rem; }
+.private-event-form label { display: grid; gap: 0.3rem; font-weight: 650; font-size: 0.92rem; }
+.private-event-form input { padding: 0.55rem 0.65rem; border: 1px solid var(--line); border-radius: 0.55rem; font: inherit; background: #fff; width: 100%; box-sizing: border-box; }
+.private-event-form input:focus-visible { outline: 3px solid #8fc8e7; outline-offset: 1px; }
+.private-time-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; }
+.private-form-actions { display: flex; justify-content: flex-end; gap: 0.6rem; }
+.private-form-actions button { padding: 0.55rem 1.1rem; border-radius: 999px; border: 1px solid var(--line); background: #f8fafb; cursor: pointer; font: inherit; }
+.private-form-actions .private-save { background: #087f8c; border-color: #087f8c; color: #fff; font-weight: 700; }
+.event-meta { margin: 0.3rem 0 0; color: var(--muted); font-size: 0.85rem; }
+.private-event-delete { position: absolute; top: 0.3rem; right: 0.4rem; width: 1.7rem; height: 1.7rem; padding: 0; border: 0; border-radius: 50%; background: transparent; color: #b3261e; font-size: 1.1rem; line-height: 1; cursor: pointer; }
+.private-event-delete:hover { background: rgba(179, 38, 30, 0.1); }
