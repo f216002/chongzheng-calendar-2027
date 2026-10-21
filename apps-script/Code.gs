@@ -7,14 +7,14 @@
  */
 
 const 行事曆設定 = Object.freeze({
-  來源工作表優先名稱: '2027年度_月曆報表',
+  來源工作表優先名稱: '2027年度_月曆報表_正確版20261021',
   活動資料表: '網頁活動資料',
   分類設定表: '分類設定',
   系統設定表: '系統設定',
   Google同步索引表: 'Google日曆同步索引',
   Google同步批次筆數: 60,
   時區: 'Asia/Taipei',
-  API版本: '1.4.4'
+  API版本: '1.4.5'
 });
 
 const Google同步屬性 = Object.freeze({
@@ -39,7 +39,9 @@ const 欄位分類 = Object.freeze([
   { 欄: 'N', 代碼: 'guangxiong', 名稱: '光雄課程與活動', 道場: '光雄', 顏色: '#9A5E38', 預設: false, 排序: 110 },
   { 欄: 'O', 代碼: 'indonesia', 名稱: '印尼課程與活動', 道場: '印尼', 顏色: '#3D7EA6', 預設: false, 排序: 120 },
   { 欄: 'P', 代碼: 'malaysia_group', 名稱: '馬來西亞／印尼棉蘭／孟加拉課程與活動', 道場: '馬來西亞／印尼棉蘭／孟加拉', 顏色: '#2F806D', 預設: false, 排序: 130 },
-  { 欄: 'Q', 代碼: 'cambodia', 名稱: '柬埔寨課程與活動', 道場: '柬埔寨', 顏色: '#8B5E9F', 預設: false, 排序: 140 }
+  { 欄: 'Q', 代碼: 'cambodia', 名稱: '柬埔寨課程與活動', 道場: '柬埔寨', 顏色: '#8B5E9F', 預設: false, 排序: 140 },
+  { 欄: 'R', 代碼: 'guanghui', 名稱: '光輝課程與活動', 道場: '光輝', 顏色: '#BF9000', 預設: false, 排序: 150 },
+  { 欄: 'S', 代碼: 'guangsheng', 名稱: '台東光聖課程與活動', 道場: '光聖', 顏色: '#546E7A', 預設: false, 排序: 160 }
 ]);
 
 const 全部仙佛班關鍵字 = Object.freeze([
@@ -175,8 +177,8 @@ function 轉換總表為活動資料_(sheet) {
   const lastRow = sheet.getLastRow();
   if (lastRow < 2) return [];
 
-  const raw = sheet.getRange(2, 1, lastRow - 1, 17).getValues();
-  const display = sheet.getRange(2, 1, lastRow - 1, 17).getDisplayValues();
+  const raw = sheet.getRange(2, 1, lastRow - 1, 19).getValues();
+  const display = sheet.getRange(2, 1, lastRow - 1, 19).getDisplayValues();
   const results = [];
   const usedEventIds = new Set();
 
