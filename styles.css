@@ -1677,3 +1677,6 @@ body.gate-open { overflow: hidden; }
 .admin-overview-events { display: grid; gap: 0.25rem; }
 .admin-overview-event { font-size: 0.86rem; color: #37474f; padding: 0.3rem 0.55rem; background: #fbfdfe; border: 1px solid var(--line); border-radius: 0.5rem; }
 .admin-overview-event strong { color: #102f47; }
+
+/* 私人行程對話框捲動（2026-10-21）：內容超出螢幕高度時，右側出現捲軸可上下拉動 */
+.private-event-dialog { max-height: 88vh; overflow-y: auto; overscroll-behavior: contain; }
