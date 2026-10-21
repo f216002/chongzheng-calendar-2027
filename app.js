@@ -2,23 +2,6 @@
 
 const API_URL = 'https://script.google.com/macros/s/AKfycbx11UqmZ_apamVa7FU5Dp46G9DNddfIeHaohjYFrasLNaZ0QcmDmIl2ZYVmOGihET44/exec';
 const PUBLIC_CALENDAR_ID = '1d311aa618934513387621d52ddaa5a4e15a5a894532b6aaeab89396fafca5e1@group.calendar.google.com';
-const GOOGLE_OAUTH_CLIENT_ID = '158183801546-e26ij2ngo43p5a6t0lbr38r76m3tupeo.apps.googleusercontent.com';
-const GOOGLE_CALENDAR_SCOPES = [
-  'https://www.googleapis.com/auth/calendar.events.readonly',
-  'https://www.googleapis.com/auth/calendar.calendarlist.readonly'
-].join(' ');
-const PUBLIC_CALENDAR_TITLES = new Set([
-  '寶光崇正2027年度全球行事曆'
-]);
-const PERSONAL_CALENDAR_CODE = 'personal_calendar';
-const PERSONAL_CALENDAR_CATEGORY = Object.freeze({
-  code: PERSONAL_CALENDAR_CODE,
-  name: '個人行事曆',
-  color: '#6f5aa8',
-  order: Number.MAX_SAFE_INTEGER,
-  defaultSelected: false,
-  virtual: true
-});
 const PRIVATE_CALENDAR_CODE = 'private';
 const PRIVATE_CALENDAR_CATEGORY = Object.freeze({
   code: PRIVATE_CALENDAR_CODE,
@@ -67,13 +50,8 @@ const state = {
   categories: [], events: [], selected: new Set(), month: null,
   activeRegion: 'taiwan', hasRendered: false,
   speechDate: null,
-  personalEvents: [],
-  privateEvents: [],
-  personalAccessToken: '',
-  personalTokenExpiresAt: 0,
-  personalCalendarStatus: 'disconnected'
+  privateEvents: []
 };
-let personalTokenClient = null;
 const speechState = {
   queue: [], index: 0, playing: false, paused: false, lastYear: null
 };
@@ -95,11 +73,14 @@ const elements = {
   fontSizeDecrease: document.querySelector('#fontSizeDecrease'),
   fontSizeIncrease: document.querySelector('#fontSizeIncrease'),
   fontScaleValue: document.querySelector('#fontScaleValue'),
-  subscribeCalendarButton: document.querySelector('#subscribeCalendarButton'),
-  calendarSubscribeModal: document.querySelector('#calendarSubscribeModal'),
-  calendarSubscribeClose: document.querySelector('#calendarSubscribeClose'),
-  googleCalendarSubscribe: document.querySelector('#googleCalendarSubscribe'),
-  appleCalendarSubscribe: document.querySelector('#appleCalendarSubscribe'),
+  authGate: document.querySelector('#authGate'),
+  calGoogleSignIn: document.querySelector('#calGoogleSignIn'),
+  calGateSignOut: document.querySelector('#calGateSignOut'),
+  accountBar: document.querySelector('#accountBar'),
+  calAccountPhoto: document.querySelector('#calAccountPhoto'),
+  calAccountName: document.querySelector('#calAccountName'),
+  calAccountEmail: document.querySelector('#calAccountEmail'),
+  calAdminButton: document.querySelector('#calAdminButton'),
   addPrivateEventButton: document.querySelector('#addPrivateEventButton'),
   privateEventModal: document.querySelector('#privateEventModal'),
   privateEventClose: document.querySelector('#privateEventClose'),
@@ -108,32 +89,14 @@ const elements = {
   privateDate: document.querySelector('#privateDate'),
   privateStart: document.querySelector('#privateStart'),
   privateEnd: document.querySelector('#privateEnd'),
-  privateLocation: document.querySelector('#privateLocation')
+  privateLocation: document.querySelector('#privateLocation'),
+  privateRecurrence: document.querySelector('#privateRecurrence'),
+  privateUntil: document.querySelector('#privateUntil'),
+  privateReminder: document.querySelector('#privateReminder'),
+  privateMeeting: document.querySelector('#privateMeeting'),
+  privateNotes: document.querySelector('#privateNotes'),
+  reminderBar: document.querySelector('#reminderBar')
 };
-
-function initializeCalendarSubscription() {
-  const encodedCalendarId = encodeURIComponent(PUBLIC_CALENDAR_ID);
-  if (elements.googleCalendarSubscribe) {
-    elements.googleCalendarSubscribe.href = `https://calendar.google.com/calendar/u/0/r?cid=${encodedCalendarId}`;
-  }
-  if (elements.appleCalendarSubscribe) {
-    elements.appleCalendarSubscribe.href = `webcal://calendar.google.com/calendar/ical/${encodedCalendarId}/public/basic.ics`;
-  }
-}
-
-function openCalendarSubscribeModal() {
-  if (!elements.calendarSubscribeModal) return;
-  elements.calendarSubscribeModal.hidden = false;
-  document.body.classList.add('modal-open');
-  requestAnimationFrame(() => elements.calendarSubscribeClose?.focus());
-}
-
-function closeCalendarSubscribeModal() {
-  if (!elements.calendarSubscribeModal || elements.calendarSubscribeModal.hidden) return;
-  elements.calendarSubscribeModal.hidden = true;
-  document.body.classList.remove('modal-open');
-  elements.subscribeCalendarButton?.focus();
-}
 
 function applyFontLevel(level, save = true) {
   const safeLevel = Math.min(Math.max(Number(level) || 0, 0), FONT_LEVELS.length - 1);
@@ -324,105 +287,106 @@ function categoriesForRegion(region = state.activeRegion) {
   const codes = region === 'global' ? GLOBAL_CODES : TAIWAN_CODES;
   return [
     ...state.categories.filter(category => codes.has(category.code)),
-    PERSONAL_CALENDAR_CATEGORY,
     PRIVATE_CALENDAR_CATEGORY
   ];
 }
 
 function categoryByCode(code) {
-  if (code === PERSONAL_CALENDAR_CODE) return PERSONAL_CALENDAR_CATEGORY;
   if (code === PRIVATE_CALENDAR_CODE) return PRIVATE_CALENDAR_CATEGORY;
   return state.categories.find(item => item.code === code);
 }
 
-function hasValidPersonalToken() {
-  return Boolean(state.personalAccessToken && Date.now() < state.personalTokenExpiresAt);
+function weekdayForDate(date) {
+  return new Intl.DateTimeFormat('zh-TW', { weekday: 'short', timeZone: 'UTC' })
+    .format(new Date(`${date}T12:00:00Z`));
 }
 
-function initializePersonalTokenClient() {
-  if (personalTokenClient) return true;
-  if (!window.google?.accounts?.oauth2) return false;
-  personalTokenClient = window.google.accounts.oauth2.initTokenClient({
-    client_id: GOOGLE_OAUTH_CLIENT_ID,
-    scope: GOOGLE_CALENDAR_SCOPES,
-    callback: handlePersonalTokenResponse,
-    error_callback: handlePersonalAuthError
-  });
-  return true;
-}
-
-function requestPersonalCalendarAccess() {
-  if (!initializePersonalTokenClient()) {
-    window.alert('Google 授權服務尚未載入，請確認網路後再試一次。');
-    renderFilters();
-    return;
-  }
-  state.personalCalendarStatus = 'authorizing';
-  renderFilters();
-  personalTokenClient.requestAccessToken({ prompt: 'consent' });
-}
-
-async function handlePersonalTokenResponse(response) {
-  if (!response?.access_token || response.error) {
-    handlePersonalAuthError(response);
-    return;
-  }
-  state.personalAccessToken = response.access_token;
-  state.personalTokenExpiresAt = Date.now() + Math.max(0, Number(response.expires_in || 3600) - 60) * 1000;
-  state.personalCalendarStatus = 'loading';
-  state.selected.add(PERSONAL_CALENDAR_CODE);
-  renderFilters();
-  try {
-    await loadPersonalCalendarEvents();
-    state.personalCalendarStatus = 'connected';
-    renderFilters();
-    renderCalendar();
-  } catch (error) {
-    console.error('讀取個人行事曆失敗：', error);
-    clearPersonalCalendarSession();
-    window.alert(error.message || '目前無法讀取個人行事曆，請稍後再試。');
-  }
-}
-
-function handlePersonalAuthError(error) {
-  console.warn('Google 個人行事曆授權未完成：', error);
-  clearPersonalCalendarSession();
-  if (error?.type !== 'popup_closed' && error?.error !== 'access_denied') {
-    window.alert('未完成 Google 個人行事曆授權，請再點選「個人行事曆」重試。');
-  }
-}
-
+/* ================= 私人行程（Firestore，每人獨立空間） =================
+   資料存放在 cal_users/{uid}/privateEvents，只有本人（與管理員）可存取，
+   不會與其他人的行程混在一起。讀寫一律先經 cal-access 審核狀態把關。 */
 let privateStore = [];
+let privateLoadedForUid = '';
 
-function loadPrivateStore() {
-  try {
-    const parsed = JSON.parse(localStorage.getItem(PRIVATE_STORAGE_KEY) || '[]');
-    privateStore = Array.isArray(parsed) ? parsed.filter(item => item && item.date && item.title) : [];
-  } catch (error) {
-    console.warn('無法讀取私人行程：', error);
-    privateStore = [];
-  }
+const RECURRENCE_LABELS = { weekly: '每週', monthly: '每月', yearly: '每年' };
+const PRIVATE_EXPAND_CAP = '2028-12-31';
+
+function addDaysIso(date, days) {
+  const value = new Date(`${date}T00:00:00Z`);
+  value.setUTCDate(value.getUTCDate() + days);
+  return value.toISOString().slice(0, 10);
 }
 
-function persistPrivateStore() {
-  try {
-    localStorage.setItem(PRIVATE_STORAGE_KEY, JSON.stringify(privateStore));
-  } catch (error) {
-    console.warn('無法儲存私人行程：', error);
-    window.alert('儲存空間不足，私人行程未能存入這台裝置。');
+/* 把週期行程展開成每一場的日期（上限 120 場或至 2028 年底）。 */
+function expandPrivateDates(raw) {
+  const start = raw.date;
+  const freq = raw.recurrence || 'none';
+  if (!start) return [];
+  if (freq === 'none') return [start];
+  const until = raw.recurrenceUntil && raw.recurrenceUntil >= start
+    ? raw.recurrenceUntil : PRIVATE_EXPAND_CAP;
+  const dates = [];
+  if (freq === 'weekly') {
+    for (let d = start; d <= until && dates.length < 120; d = addDaysIso(d, 7)) dates.push(d);
+  } else if (freq === 'monthly') {
+    const [y, m, day] = start.split('-').map(Number);
+    for (let i = 0; i < 36 && dates.length < 120; i++) {
+      const base = new Date(Date.UTC(y, m - 1 + i, 1));
+      const lastDay = new Date(Date.UTC(base.getUTCFullYear(), base.getUTCMonth() + 1, 0)).getUTCDate();
+      if (day > lastDay) continue;
+      const iso = `${base.getUTCFullYear()}-${String(base.getUTCMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      if (iso > until) break;
+      dates.push(iso);
+    }
+  } else if (freq === 'yearly') {
+    const [y, m, day] = start.split('-').map(Number);
+    for (let i = 0; i < 5; i++) {
+      const iso = `${y + i}-${String(m).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      const check = new Date(`${iso}T00:00:00Z`);
+      if (check.getUTCMonth() !== m - 1) continue; /* 2/29 非閏年略過 */
+      if (iso > until) break;
+      dates.push(iso);
+    }
   }
+  return dates;
 }
 
-function normalizePrivateEvent(raw) {
+function addMinutesToTime(time, mins) {
+  const [h, m] = String(time).split(':').map(Number);
+  const total = ((h * 60 + m + mins) % 1440 + 1440) % 1440;
+  return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+}
+
+function googleTemplateUrl(event) {
+  const params = new URLSearchParams({ action: 'TEMPLATE', text: event.name });
+  const compact = event.date.replaceAll('-', '');
+  if (event.startTimeRaw) {
+    const endTime = event.endTimeRaw && event.endTimeRaw > event.startTimeRaw
+      ? event.endTimeRaw : addMinutesToTime(event.startTimeRaw, 60);
+    params.set('dates', `${compact}T${event.startTimeRaw.replace(':', '')}00/${compact}T${endTime.replace(':', '')}00`);
+  } else {
+    params.set('dates', `${compact}/${addDaysIso(event.date, 1).replaceAll('-', '')}`);
+  }
+  const details = [event.notes,
+    event.meetingLink ? `會議連結：${event.meetingLink}` : ''].filter(Boolean).join('\n');
+  if (details) params.set('details', details);
+  if (event.location) params.set('location', event.location);
+  if (event.isSeriesStart && event.recurrence && event.recurrence !== 'none') {
+    const freq = { weekly: 'WEEKLY', monthly: 'MONTHLY', yearly: 'YEARLY' }[event.recurrence];
+    if (freq) params.set('recur', `RRULE:FREQ=${freq}`);
+  }
+  return `https://calendar.google.com/calendar/render?${params.toString()}`;
+}
+
+function normalizePrivateEvent(raw, date) {
   const timeText = raw.startTime && raw.endTime
     ? `${raw.startTime}-${raw.endTime}` : (raw.startTime || raw.endTime || '');
   const [hh, mm] = String(raw.startTime || '12:00').split(':').map(Number);
   return {
-    id: `private-${raw.id}`,
+    id: `private-${raw.id}-${date}`,
     rawId: raw.id,
     name: String(raw.title || ''),
-    date: raw.date,
-    weekday: weekdayForDate(raw.date),
+    date,
+    weekday: weekdayForDate(date),
     lunar: '',
     week: '',
     category: PRIVATE_CALENDAR_CODE,
@@ -430,19 +394,139 @@ function normalizePrivateEvent(raw) {
     order: 900000 + (Number.isFinite(hh) ? hh * 60 + (mm || 0) : 720),
     privateLocal: true,
     timeText,
-    location: String(raw.location || '')
+    location: String(raw.location || ''),
+    meetingLink: String(raw.meetingLink || ''),
+    notes: String(raw.notes || ''),
+    recurrence: raw.recurrence || 'none',
+    recurrenceLabel: RECURRENCE_LABELS[raw.recurrence] || '',
+    reminder: raw.reminder || 'none',
+    startTimeRaw: raw.startTime || '',
+    endTimeRaw: raw.endTime || '',
+    isSeriesStart: date === raw.date
   };
 }
 
 function refreshPrivateEvents() {
-  state.privateEvents = privateStore.map(normalizePrivateEvent);
+  state.privateEvents = privateStore.flatMap(raw =>
+    expandPrivateDates(raw).map(date => normalizePrivateEvent(raw, date)));
 }
 
-function removePrivateEvent(rawId) {
-  privateStore = privateStore.filter(item => item.id !== rawId);
-  persistPrivateStore();
+/* ---------- 私人行程提醒（網站開啟時顯示；裝置提醒靠 Google 日曆連結） ---------- */
+const REMINDER_DISMISS_KEY = 'chongzheng-reminder-dismissed-v1';
+let reminderTimerStarted = false;
+
+function occurrenceStart(event) {
+  const [h, m] = (event.startTimeRaw || '09:00').split(':').map(Number);
+  return new Date(`${event.date}T${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:00`);
+}
+
+function reminderTimeFor(event, start) {
+  switch (event.reminder) {
+    case '10m': return new Date(start.getTime() - 10 * 60000);
+    case '30m': return new Date(start.getTime() - 30 * 60000);
+    case '1h': return new Date(start.getTime() - 3600000);
+    case '1d9': { const d = new Date(start); d.setDate(d.getDate() - 1); d.setHours(9, 0, 0, 0); return d; }
+    case '0d9': { const d = new Date(start); d.setHours(9, 0, 0, 0); return d; }
+    default: return null;
+  }
+}
+
+function checkPrivateReminders() {
+  if (!elements.reminderBar) return;
+  let dismissed = new Set();
+  try { dismissed = new Set(JSON.parse(localStorage.getItem(REMINDER_DISMISS_KEY) || '[]')); } catch (error) {}
+  const now = new Date();
+  const due = [];
+  state.privateEvents.forEach(event => {
+    if (!event.reminder || event.reminder === 'none') return;
+    const start = occurrenceStart(event);
+    const remindAt = reminderTimeFor(event, start);
+    if (!remindAt) return;
+    const key = `${event.id}@${remindAt.getTime()}`;
+    if (dismissed.has(key)) return;
+    if (now >= remindAt && start.getTime() >= now.getTime() - 30 * 60000) {
+      due.push({ event, key });
+    }
+  });
+  if (!due.length) {
+    elements.reminderBar.hidden = true;
+    elements.reminderBar.replaceChildren();
+    return;
+  }
+  elements.reminderBar.replaceChildren(...due.map(({ event, key }) => {
+    const item = document.createElement('div');
+    item.className = 'reminder-item';
+    const text = document.createElement('span');
+    const when = event.timeText ? `${event.date.replaceAll('-', '/')} ${event.timeText}` : event.date.replaceAll('-', '/');
+    text.textContent = `🔔 提醒：${when} ${event.name}${event.location ? `（${event.location}）` : ''}`;
+    const close = document.createElement('button');
+    close.type = 'button';
+    close.className = 'reminder-dismiss';
+    close.textContent = '×';
+    close.setAttribute('aria-label', '關閉這則提醒');
+    close.addEventListener('click', () => {
+      dismissed.add(key);
+      try {
+        localStorage.setItem(REMINDER_DISMISS_KEY, JSON.stringify([...dismissed].slice(-100)));
+      } catch (error) {}
+      checkPrivateReminders();
+    });
+    item.append(text, close);
+    return item;
+  }));
+  elements.reminderBar.hidden = false;
+}
+
+function startReminderTimer() {
+  if (reminderTimerStarted) return;
+  reminderTimerStarted = true;
+  checkPrivateReminders();
+  setInterval(checkPrivateReminders, 60000);
+}
+
+async function loadPrivateEventsFromFirestore() {
+  const access = window.CAL_ACCESS;
+  if (!access || access.status !== 'approved' || !access.user || !window.CAL_DB) return;
+  const uid = access.user.uid;
+  if (privateLoadedForUid === uid) return;
+  privateLoadedForUid = uid;
+  try {
+    const snap = await window.CAL_DB.collection('cal_users').doc(uid)
+      .collection('privateEvents').get();
+    privateStore = snap.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+    privateStore.sort((a, b) =>
+      String(a.date).localeCompare(String(b.date)) ||
+      String(a.startTime || '').localeCompare(String(b.startTime || '')));
+    refreshPrivateEvents();
+    if (state.privateEvents.length) state.selected.add(PRIVATE_CALENDAR_CODE);
+    if (state.hasRendered) {
+      renderFilters();
+      renderCalendar();
+    }
+    startReminderTimer();
+  } catch (error) {
+    console.error('讀取私人行程失敗：', error);
+    privateLoadedForUid = '';
+  }
+}
+
+function clearPrivateEvents() {
+  privateStore = [];
+  privateLoadedForUid = '';
   refreshPrivateEvents();
-  renderCalendar();
+}
+
+async function removePrivateEvent(rawId) {
+  try {
+    const user = window.calRequireApproved();
+    await window.CAL_DB.collection('cal_users').doc(user.uid)
+      .collection('privateEvents').doc(rawId).delete();
+    privateStore = privateStore.filter(item => item.id !== rawId);
+    refreshPrivateEvents();
+    renderCalendar();
+  } catch (error) {
+    window.alert(error.message || '刪除失敗，請稍後再試。');
+  }
 }
 
 function openPrivateEventModal() {
@@ -463,202 +547,104 @@ function closePrivateEventModal() {
   elements.addPrivateEventButton?.focus();
 }
 
-function handlePrivateEventSubmit(submitEvent) {
+async function handlePrivateEventSubmit(submitEvent) {
   submitEvent.preventDefault();
   const title = elements.privateTitle.value.trim();
   const date = elements.privateDate.value;
   const startTime = elements.privateStart.value;
   const endTime = elements.privateEnd.value;
   const location = elements.privateLocation.value.trim();
+  const recurrence = elements.privateRecurrence.value || 'none';
+  const recurrenceUntil = recurrence === 'none' ? '' : (elements.privateUntil.value || '');
+  const reminder = elements.privateReminder.value || 'none';
+  let meetingLink = elements.privateMeeting.value.trim();
+  if (meetingLink && !/^https?:\/\//i.test(meetingLink)) meetingLink = `https://${meetingLink}`;
+  const notes = elements.privateNotes.value.trim();
   if (!title || !date) return;
   if (startTime && endTime && endTime <= startTime) {
     window.alert('結束時間需晚於開始時間，請再確認。');
     return;
   }
-  privateStore.push({
-    id: `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`,
-    title, date, startTime, endTime, location,
-    createdAt: Date.now()
-  });
-  persistPrivateStore();
-  refreshPrivateEvents();
-  closePrivateEventModal();
-  state.selected.add(PRIVATE_CALENDAR_CODE);
-  state.month = date.slice(0, 7);
-  renderFilters();
-  renderCalendar();
-}
-
-function clearPersonalCalendarSession({ revoke = false } = {}) {
-  const token = state.personalAccessToken;
-  state.personalAccessToken = '';
-  state.personalTokenExpiresAt = 0;
-  state.personalEvents = [];
-  state.personalCalendarStatus = 'disconnected';
-  state.selected.delete(PERSONAL_CALENDAR_CODE);
-  if (revoke && token && window.google?.accounts?.oauth2) {
-    window.google.accounts.oauth2.revoke(token, () => {});
-  }
-  if (state.hasRendered) {
+  const saveButton = elements.privateEventForm.querySelector('.private-save');
+  try {
+    const user = window.calRequireApproved();
+    if (saveButton) saveButton.disabled = true;
+    const data = {
+      title, date, startTime, endTime, location,
+      recurrence, recurrenceUntil, reminder, meetingLink, notes,
+      createdAt: window.firebase.firestore.FieldValue.serverTimestamp()
+    };
+    const ref = await window.CAL_DB.collection('cal_users').doc(user.uid)
+      .collection('privateEvents').add(data);
+    privateStore.push({ ...data, id: ref.id, createdAt: Date.now() });
+    refreshPrivateEvents();
+    closePrivateEventModal();
+    state.selected.add(PRIVATE_CALENDAR_CODE);
+    state.month = date.slice(0, 7);
     renderFilters();
     renderCalendar();
+  } catch (error) {
+    window.alert(error.message || '儲存失敗，請稍後再試。');
+  } finally {
+    if (saveButton) saveButton.disabled = false;
   }
 }
 
-function personalCalendarRange() {
-  const dates = state.events.map(event => event.date).filter(Boolean).sort();
-  const firstYear = Number((dates[0] || '2027-01-01').slice(0, 4));
-  const lastYear = Number((dates.at(-1) || '2027-12-31').slice(0, 4));
-  return {
-    timeMin: `${firstYear}-01-01T00:00:00Z`,
-    timeMax: `${lastYear + 1}-01-01T00:00:00Z`
-  };
+/* ================= 登入閘門（比照 V4：未核准不載入任何資料） ================= */
+let calendarBootStarted = false;
+
+function startCalendarOnce() {
+  if (calendarBootStarted) return;
+  calendarBootStarted = true;
+  const hasCache = loadCachedData();
+  const forceRefresh = new URLSearchParams(window.location.search).has('refresh');
+  loadData({ force: forceRefresh, showLoading: !hasCache });
+  loadPrivateEventsFromFirestore();
 }
 
-async function loadPersonalCalendarEvents() {
-  if (!hasValidPersonalToken()) {
-    throw new Error('Google 授權已到期，請重新點選「個人行事曆」。');
-  }
-  const { timeMin, timeMax } = personalCalendarRange();
-  const calendars = await loadSelectedPersonalCalendars();
-  const eventGroups = await Promise.all(calendars.map(async calendar => {
-    try {
-      return { calendar, items: await loadCalendarEvents(calendar.id, timeMin, timeMax) };
-    } catch (error) {
-      console.warn(`略過無法讀取的日曆：${calendar.summary || calendar.id}`, error);
-      return { calendar, items: [] };
+function setGateMessage(message) {
+  if (window.calSetAuthMessage) window.calSetAuthMessage(message);
+}
+
+function handleAccessChanged() {
+  const access = window.CAL_ACCESS;
+  if (!access || !elements.authGate) return;
+  const user = access.user;
+  if (access.status === 'approved' && user) {
+    elements.authGate.hidden = true;
+    document.body.classList.remove('gate-open');
+    elements.accountBar.hidden = false;
+    elements.calAccountName.textContent = user.displayName || '使用者';
+    elements.calAccountEmail.textContent = user.email || '';
+    if (user.photoURL) {
+      elements.calAccountPhoto.src = user.photoURL;
+      elements.calAccountPhoto.hidden = false;
+    } else {
+      elements.calAccountPhoto.hidden = true;
     }
-  }));
-  state.personalEvents = eventGroups.flatMap(({ calendar, items }) => items
-    .filter(item => item.status !== 'cancelled')
-    .flatMap(item => normalizePersonalEvent(item, calendar)));
-}
-
-async function loadSelectedPersonalCalendars() {
-  const calendars = [];
-  let pageToken = '';
-  do {
-    const url = new URL('https://www.googleapis.com/calendar/v3/users/me/calendarList');
-    url.searchParams.set('maxResults', '250');
-    url.searchParams.set('showDeleted', 'false');
-    url.searchParams.set('showHidden', 'false');
-    if (pageToken) url.searchParams.set('pageToken', pageToken);
-    const payload = await fetchGoogleCalendarJson(url);
-    calendars.push(...(payload.items || []).filter(calendar =>
-      calendar.selected === true && !isPublicCalendar(calendar)
-    ));
-    pageToken = payload.nextPageToken || '';
-  } while (pageToken);
-  return calendars;
-}
-
-function isPublicCalendar(calendar) {
-  if (String(calendar.id || '').toLowerCase() === PUBLIC_CALENDAR_ID.toLowerCase()) return true;
-  const titles = [calendar.summary, calendar.summaryOverride]
-    .map(normalizeCalendarTitle)
-    .filter(Boolean);
-  return titles.some(title => PUBLIC_CALENDAR_TITLES.has(title));
-}
-
-function normalizeCalendarTitle(value) {
-  return String(value || '').replace(/\s+/g, '').trim();
-}
-
-async function loadCalendarEvents(calendarId, timeMin, timeMax) {
-  const items = [];
-  let pageToken = '';
-  do {
-    const url = new URL(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events`);
-    url.searchParams.set('timeMin', timeMin);
-    url.searchParams.set('timeMax', timeMax);
-    url.searchParams.set('singleEvents', 'true');
-    url.searchParams.set('orderBy', 'startTime');
-    url.searchParams.set('maxResults', '2500');
-    url.searchParams.set('timeZone', Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Taipei');
-    if (pageToken) url.searchParams.set('pageToken', pageToken);
-    const payload = await fetchGoogleCalendarJson(url);
-    items.push(...(payload.items || []));
-    pageToken = payload.nextPageToken || '';
-  } while (pageToken);
-  return items;
-}
-
-async function fetchGoogleCalendarJson(url) {
-  const response = await fetch(url, {
-    headers: { Authorization: `Bearer ${state.personalAccessToken}` },
-    cache: 'no-store'
-  });
-  if (!response.ok) {
-    const detail = await response.json().catch(() => null);
-    const error = new Error(detail?.error?.message || `Google Calendar API 回應錯誤（${response.status}）`);
-    error.status = response.status;
-    throw error;
+    elements.calAdminButton.hidden = !access.isAdmin;
+    setGateMessage('');
+    startCalendarOnce();
+    loadPrivateEventsFromFirestore();
+    return;
   }
-  return response.json();
-}
-
-function normalizePersonalEvent(item, calendar = {}) {
-  const summary = String(item.summary || '（無標題）').trim();
-  const calendarKey = encodeURIComponent(String(calendar.id || 'primary'));
-  const calendarName = String(calendar.summaryOverride || calendar.summary || '個人行事曆').trim();
-  if (item.start?.date) {
-    const dates = datesBefore(item.start.date, item.end?.date || addIsoDays(item.start.date, 1));
-    return dates.map((date, index) => ({
-      id: `personal-${calendarKey}-${item.id}-${date}`,
-      name: summary,
-      date,
-      weekday: weekdayForDate(date),
-      lunar: '',
-      week: '',
-      category: PERSONAL_CALENDAR_CODE,
-      categoryName: '個人行事曆',
-      order: 900000 + index,
-      personal: true,
-      personalCalendarName: calendarName
-    }));
+  /* 未核准（含未登入）：閘門擋住內容；若先前有登入者的私人行程，先清掉避免外洩。 */
+  if (privateLoadedForUid) {
+    clearPrivateEvents();
+    if (state.hasRendered) renderCalendar();
   }
-  if (!item.start?.dateTime) return [];
-  const start = new Date(item.start.dateTime);
-  const { date, time } = localDateParts(start);
-  return [{
-    id: `personal-${calendarKey}-${item.id}-${date}`,
-    name: `${time} ${summary}`,
-    date,
-    weekday: weekdayForDate(date),
-    lunar: '',
-    week: '',
-    category: PERSONAL_CALENDAR_CODE,
-    categoryName: '個人行事曆',
-    order: start.getTime(),
-    personal: true,
-    personalCalendarName: calendarName
-  }];
-}
-
-function localDateParts(date) {
-  const parts = new Intl.DateTimeFormat('zh-TW', {
-    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Taipei',
-    year: 'numeric', month: '2-digit', day: '2-digit',
-    hour: '2-digit', minute: '2-digit', hourCycle: 'h23'
-  }).formatToParts(date).reduce((result, part) => ({ ...result, [part.type]: part.value }), {});
-  return { date: `${parts.year}-${parts.month}-${parts.day}`, time: `${parts.hour}:${parts.minute}` };
-}
-
-function addIsoDays(date, count) {
-  const value = new Date(`${date}T00:00:00Z`);
-  value.setUTCDate(value.getUTCDate() + count);
-  return value.toISOString().slice(0, 10);
-}
-
-function datesBefore(start, exclusiveEnd) {
-  const dates = [];
-  for (let date = start; date < exclusiveEnd; date = addIsoDays(date, 1)) dates.push(date);
-  return dates;
-}
-
-function weekdayForDate(date) {
-  return new Intl.DateTimeFormat('zh-TW', { weekday: 'short', timeZone: 'UTC' })
-    .format(new Date(`${date}T12:00:00Z`));
+  elements.accountBar.hidden = true;
+  elements.authGate.hidden = false;
+  document.body.classList.add('gate-open');
+  const signedIn = Boolean(user);
+  elements.calGoogleSignIn.hidden = signedIn;
+  elements.calGateSignOut.hidden = !signedIn;
+  if (access.status === 'checking') setGateMessage('正在確認登入狀態…');
+  else if (access.status === 'pending') setGateMessage(`您好，${user.displayName || user.email}。您的使用申請已送出，待管理員核准後即可使用本行事曆。`);
+  else if (access.status === 'rejected') setGateMessage('您的申請未通過核准，請聯繫管理員。');
+  else if (access.status === 'suspended') setGateMessage('您的帳號目前暫停使用，請聯繫管理員。');
+  else if (access.status === 'error') setGateMessage('登入狀態確認失敗，請重新整理頁面再試。');
+  else setGateMessage('');
 }
 
 function renderRegionTabs() {
@@ -674,49 +660,18 @@ function renderFilters() {
   elements.filters.replaceChildren(...categoriesForRegion().map(category => {
     const wrapper = document.createElement('div');
     wrapper.className = 'filter-chip';
-    if (category.code === PERSONAL_CALENDAR_CODE) {
-      wrapper.classList.add('personal-calendar-chip');
-      wrapper.classList.toggle('is-connected', hasValidPersonalToken());
-      wrapper.classList.toggle('is-loading', ['loading', 'authorizing'].includes(state.personalCalendarStatus));
-    }
     wrapper.style.setProperty('--chip-color', categoryDisplayColor(category));
     const input = document.createElement('input');
     input.type = 'checkbox'; input.id = `filter-${state.activeRegion}-${category.code}`; input.value = category.code;
     input.checked = state.selected.has(category.code);
     input.addEventListener('change', () => {
-      if (category.code === PERSONAL_CALENDAR_CODE && input.checked && !hasValidPersonalToken()) {
-        input.checked = false;
-        requestPersonalCalendarAccess();
-        return;
-      }
       input.checked ? state.selected.add(category.code) : state.selected.delete(category.code);
       renderCalendar();
     });
     const label = document.createElement('label');
     label.htmlFor = input.id;
-    label.textContent = category.code === PERSONAL_CALENDAR_CODE && !hasValidPersonalToken()
-      ? `🔒 ${category.name}`
-      : category.name;
-    if (category.code === PERSONAL_CALENDAR_CODE) {
-      label.title = hasValidPersonalToken()
-        ? '只在本機暫時顯示您的 Google 個人行事曆'
-        : '點選後授權讀取您的 Google 個人行事曆';
-    }
+    label.textContent = category.name;
     wrapper.append(input, label);
-    if (category.code === PERSONAL_CALENDAR_CODE && hasValidPersonalToken()) {
-      const disconnect = document.createElement('button');
-      disconnect.type = 'button';
-      disconnect.className = 'personal-calendar-disconnect';
-      disconnect.textContent = '×';
-      disconnect.title = '解除個人行事曆連結';
-      disconnect.setAttribute('aria-label', '解除個人行事曆連結');
-      disconnect.addEventListener('click', event => {
-        event.preventDefault();
-        event.stopPropagation();
-        clearPersonalCalendarSession({ revoke: true });
-      });
-      wrapper.append(disconnect);
-    }
     return wrapper;
   }));
   elements.filters.scrollLeft = 0;
@@ -780,7 +735,7 @@ function matchesAdvancedSearch(event) {
 
 function getVisibleEvents() {
   const searching = hasActiveSearch();
-  return [...state.events, ...state.personalEvents, ...state.privateEvents].filter(event =>
+  return [...state.events, ...state.privateEvents].filter(event =>
     (searching || event.date.startsWith(state.month)) &&
     isVisible(event) &&
     matchesAdvancedSearch(event)
@@ -854,7 +809,6 @@ function createEventColumn(title, className) {
 function createEvent(event) {
   const category = categoryByCode(event.category);
   const item = document.createElement('div'); item.className = 'event';
-  if (event.personal) item.classList.add('personal-event');
   item.dataset.eventId = String(event.id || event.event_id || `${event.date}-${event.order}-${event.name}`);
   item.style.setProperty('--event-color', eventDisplayColor(event, category));
   const name = document.createElement('p'); name.className = 'event-name'; name.textContent = event.name;
@@ -863,11 +817,36 @@ function createEvent(event) {
   item.append(name, categoryName);
   if (event.privateLocal) {
     item.classList.add('private-event');
-    const metaParts = [event.timeText, event.location].filter(Boolean);
+    const metaParts = [event.timeText, event.location,
+      event.recurrenceLabel ? `🔁 ${event.recurrenceLabel}` : ''].filter(Boolean);
     if (metaParts.length) {
       const meta = document.createElement('p'); meta.className = 'event-meta';
       meta.textContent = metaParts.join(' · ');
       item.insertBefore(meta, categoryName);
+    }
+    if (event.meetingLink) {
+      const meeting = document.createElement('a');
+      meeting.className = 'event-meeting';
+      meeting.href = event.meetingLink;
+      meeting.target = '_blank';
+      meeting.rel = 'noopener noreferrer';
+      meeting.textContent = '🎥 加入線上會議';
+      meeting.addEventListener('click', clickEvent => clickEvent.stopPropagation());
+      item.append(meeting);
+    }
+    const gcal = document.createElement('a');
+    gcal.className = 'event-gcal';
+    gcal.href = googleTemplateUrl(event);
+    gcal.target = '_blank';
+    gcal.rel = 'noopener noreferrer';
+    gcal.textContent = '＋ Google 日曆';
+    gcal.title = '加入自己的 Google 日曆，由手機發出提醒';
+    gcal.addEventListener('click', clickEvent => clickEvent.stopPropagation());
+    item.append(gcal);
+    if (event.notes) {
+      const notes = document.createElement('p'); notes.className = 'event-notes';
+      notes.textContent = event.notes;
+      item.append(notes);
     }
     const remove = document.createElement('button');
     remove.type = 'button';
@@ -877,7 +856,10 @@ function createEvent(event) {
     remove.setAttribute('aria-label', `刪除私人行程 ${event.name}`);
     remove.addEventListener('click', clickEvent => {
       clickEvent.stopPropagation();
-      if (window.confirm(`確定要刪除私人行程「${event.name}」嗎？`)) removePrivateEvent(event.rawId);
+      const message = event.recurrence && event.recurrence !== 'none'
+        ? `確定要刪除私人行程「${event.name}」整個週期系列嗎？`
+        : `確定要刪除私人行程「${event.name}」嗎？`;
+      if (window.confirm(message)) removePrivateEvent(event.rawId);
     });
     item.append(remove);
   }
@@ -885,7 +867,6 @@ function createEvent(event) {
 }
 
 function conciseEventLabel(event, category) {
-  if (event.category === PERSONAL_CALENDAR_CODE) return '個人行事曆';
   if (event.category === PRIVATE_CALENDAR_CODE) return '私人';
   const eventName = String(event.name || '');
   if (eventName.startsWith('印尼棉蘭')) return '印尼棉蘭';
@@ -1159,19 +1140,16 @@ function changeMonth(offset) {
 
 function updateRegionSelection(select) {
   categoriesForRegion().forEach(category => {
-    if (category.code === PERSONAL_CALENDAR_CODE && !hasValidPersonalToken()) return;
     select ? state.selected.add(category.code) : state.selected.delete(category.code);
   });
   renderFilters(); renderCalendar();
 }
 
 function resetToDefaultSelection() {
-  const keepPersonalCalendar = state.selected.has(PERSONAL_CALENDAR_CODE) && hasValidPersonalToken();
   const keepPrivate = state.selected.has(PRIVATE_CALENDAR_CODE);
   state.selected = new Set(
     state.categories.filter(category => category.defaultSelected).map(category => category.code)
   );
-  if (keepPersonalCalendar) state.selected.add(PERSONAL_CALENDAR_CODE);
   if (keepPrivate) state.selected.add(PRIVATE_CALENDAR_CODE);
 }
 
@@ -1183,15 +1161,11 @@ document.querySelectorAll('.region-tab').forEach(button => button.addEventListen
 }));
 elements.fontSizeDecrease?.addEventListener('click', () => changeFontLevel(-1));
 elements.fontSizeIncrease?.addEventListener('click', () => changeFontLevel(1));
-elements.subscribeCalendarButton?.addEventListener('click', openCalendarSubscribeModal);
-elements.calendarSubscribeClose?.addEventListener('click', closeCalendarSubscribeModal);
-document.querySelectorAll('[data-subscribe-close]').forEach(button => {
-  button.addEventListener('click', closeCalendarSubscribeModal);
-});
+elements.calAdminButton?.addEventListener('click', () => window.calOpenAdmin?.());
 document.addEventListener('keydown', event => {
   if (event.key === 'Escape') {
-    closeCalendarSubscribeModal();
     closePrivateEventModal();
+    window.calCloseAdmin?.();
   }
 });
 elements.addPrivateEventButton?.addEventListener('click', openPrivateEventModal);
@@ -1212,53 +1186,28 @@ elements.floatingSpeechPause?.addEventListener('click', toggleSpeechPause);
 elements.floatingSpeechStop?.addEventListener('click', () => stopSpeech(true));
 window.addEventListener('beforeunload', () => {
   stopSpeech(false);
-  state.personalAccessToken = '';
-  state.personalEvents = [];
 });
 document.querySelector('#previousMonth').addEventListener('click', () => changeMonth(-1));
 document.querySelector('#nextMonth').addEventListener('click', () => changeMonth(1));
 document.querySelector('#refreshButton').addEventListener('click', async () => {
   const button = document.querySelector('#refreshButton');
   const label = button.querySelector('span');
-  const refreshPersonal = hasValidPersonalToken();
   button.classList.add('is-refreshing');
   button.disabled = true;
   button.setAttribute('aria-busy', 'true');
   if (label) label.textContent = '更新中…';
   window.scrollTo({ top: 0, behavior: 'smooth' });
-
-  if (refreshPersonal) {
-    state.personalCalendarStatus = 'loading';
-    renderFilters();
+  try {
+    await refreshPublicCalendarData();
+    privateLoadedForUid = '';
+    await loadPrivateEventsFromFirestore();
+  } catch (error) {
+    window.alert('部分資料暫時無法更新，已保留畫面中原有資料，請稍後再試。');
   }
-
-  const tasks = [refreshPublicCalendarData()];
-  if (refreshPersonal) tasks.push(loadPersonalCalendarEvents());
-  const results = await Promise.allSettled(tasks);
-
-  if (refreshPersonal) {
-    const personalResult = results[1];
-    if (personalResult?.status === 'rejected' && [401, 403].includes(personalResult.reason?.status)) {
-      clearPersonalCalendarSession();
-    } else {
-      state.personalCalendarStatus = 'connected';
-      renderFilters();
-      renderCalendar();
-    }
-  }
-
   button.classList.remove('is-refreshing');
   button.disabled = false;
   button.removeAttribute('aria-busy');
   if (label) label.textContent = '更新資料';
-
-  const failures = results.filter(result => result.status === 'rejected');
-  if (failures.length) {
-    const needsAuthorization = failures.some(result => [401, 403].includes(result.reason?.status));
-    window.alert(needsAuthorization
-      ? 'Google 個人行事曆授權已失效，請重新點選「個人行事曆」授權。'
-      : '部分資料暫時無法更新，已保留畫面中原有資料，請稍後再試。');
-  }
 });
 document.querySelector('#selectRegion').addEventListener('click', () => updateRegionSelection(true));
 document.querySelector('#clearRegion').addEventListener('click', () => updateRegionSelection(false));
@@ -1275,9 +1224,5 @@ document.querySelector('#clearSearch').addEventListener('click', () => {
   document.querySelector('#keyword1').focus();
 });
 initializeFontLevel();
-initializeCalendarSubscription();
-loadPrivateStore();
-refreshPrivateEvents();
-const hasCache = loadCachedData();
-const forceRefresh = new URLSearchParams(window.location.search).has('refresh');
-loadData({ force: forceRefresh, showLoading: !hasCache });
+window.addEventListener('cal-access-changed', handleAccessChanged);
+if (window.CAL_ACCESS) handleAccessChanged();
