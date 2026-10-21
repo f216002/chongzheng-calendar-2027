@@ -153,9 +153,14 @@ window.loadCalendarData = function (payload) {
     settlePublicRefresh(error);
     return;
   }
-  applyCalendarData(payload, state.hasRendered);
-  saveCachedData(payload);
-  settlePublicRefresh();
+  try {
+    applyCalendarData(payload, state.hasRendered);
+    saveCachedData(payload);
+    settlePublicRefresh();
+  } catch (error) {
+    console.error('套用行事曆資料失敗：', error);
+    settlePublicRefresh(error);
+  }
 };
 
 function settlePublicRefresh(error = null) {
@@ -1289,18 +1294,30 @@ document.querySelector('#refreshButton').addEventListener('click', async () => {
   button.disabled = true;
   button.setAttribute('aria-busy', 'true');
   if (label) label.textContent = '更新中…';
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  elements.status.hidden = false;
+  elements.status.className = 'status';
+  elements.status.textContent = '正在更新資料…';
+  let refreshFailed = false;
   try {
     await refreshPublicCalendarData();
     privateLoadedForUid = '';
     await loadPrivateEventsFromFirestore();
   } catch (error) {
-    window.alert('部分資料暫時無法更新，已保留畫面中原有資料，請稍後再試。');
+    refreshFailed = true;
   }
   button.classList.remove('is-refreshing');
   button.disabled = false;
   button.removeAttribute('aria-busy');
   if (label) label.textContent = '更新資料';
+  elements.status.hidden = false;
+  if (refreshFailed) {
+    elements.status.className = 'status error';
+    elements.status.textContent = '更新失敗，已保留畫面中原有資料，請稍後再試。';
+  } else {
+    elements.status.className = 'status';
+    elements.status.textContent = '資料已更新 ✓';
+    setTimeout(() => { elements.status.hidden = true; }, 2500);
+  }
 });
 document.querySelector('#selectRegion').addEventListener('click', () => updateRegionSelection(true));
 document.querySelector('#clearRegion').addEventListener('click', () => updateRegionSelection(false));
