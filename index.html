@@ -16,7 +16,7 @@
   <title>寶光崇正2027年度全球行事曆</title>
   <link rel="preconnect" href="https://script.google.com">
   <link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=20261021-11">
+  <link rel="stylesheet" href="styles.css?v=20261021-12">
 </head>
 <body>
   <div id="authGate" class="auth-gate">
@@ -25,6 +25,8 @@
       <p class="auth-gate-desc">本網站需以 Google 帳號登入，並經管理員核准後才能使用。登入後，您新增的私人行程只會顯示在您自己的帳號，不會與他人混在一起。</p>
       <button id="calGoogleSignIn" class="cal-signin-button" type="button">使用 Google 帳號登入</button>
       <p id="calAuthMessage" class="auth-message" aria-live="polite"></p>
+      <button id="calGateReload" class="cal-gate-reload" type="button" onclick="location.reload()">⟳ 重新整理頁面</button>
+      <p class="auth-gate-hint">頁面卡住不動時，點「重新整理頁面」即可恢復。</p>
       <button id="calGateSignOut" class="cal-gate-signout" type="button" data-cal-sign-out hidden>登出</button>
     </div>
   </div>
@@ -250,8 +252,8 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-  <script src="cal-auth.js?v=20261021-5"></script>
-  <script src="cal-access.js?v=20261021-5"></script>
+  <script src="cal-auth.js?v=20261021-12"></script>
+  <script src="cal-access.js?v=20261021-12"></script>
   <script src="cal-admin.js?v=20261021-6"></script>
   <script src="app.js?v=20261021-11"></script>
 </body>
