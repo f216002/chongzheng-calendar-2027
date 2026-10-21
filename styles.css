@@ -1566,6 +1566,9 @@ body.gate-open { overflow: hidden; }
 .cal-signin-button { font: inherit; font-weight: 700; cursor: pointer; width: 100%; padding: 0.75rem 1rem; border-radius: 999px; border: 1px solid #dadce0; background: #fff; color: #1f1f1f; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
 .cal-signin-button:hover { background: #f6f9fe; }
 .cal-signin-button:disabled { opacity: 0.6; cursor: wait; }
+.cal-gate-reload { font: inherit; cursor: pointer; margin-top: 0.9rem; padding: 0.45rem 1.1rem; border-radius: 999px; border: 1px solid #b9cad5; background: #eef5f8; color: #0d6284; }
+.cal-gate-reload:active { transform: translateY(1px); }
+.auth-gate-hint { margin: 0.5rem 0 0; color: var(--muted); font-size: 0.8rem; }
 .cal-signin-button[hidden] { display: none; }
 .auth-message { min-height: 1.5em; margin: 0.9rem 0 0; color: #315e78; font-size: 0.92rem; line-height: 1.6; }
 .auth-message.error { color: #b3261e; }
