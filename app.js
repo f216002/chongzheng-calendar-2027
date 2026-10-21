@@ -81,6 +81,7 @@ const elements = {
   calAccountName: document.querySelector('#calAccountName'),
   calAccountEmail: document.querySelector('#calAccountEmail'),
   calAdminButton: document.querySelector('#calAdminButton'),
+  calExportMine: document.querySelector('#calExportMine'),
   addPrivateEventButton: document.querySelector('#addPrivateEventButton'),
   privateEventModal: document.querySelector('#privateEventModal'),
   privateEventClose: document.querySelector('#privateEventClose'),
@@ -1214,6 +1215,34 @@ document.querySelectorAll('.region-tab').forEach(button => button.addEventListen
 elements.fontSizeDecrease?.addEventListener('click', () => changeFontLevel(-1));
 elements.fontSizeIncrease?.addEventListener('click', () => changeFontLevel(1));
 elements.calAdminButton?.addEventListener('click', () => window.calOpenAdmin?.());
+elements.calExportMine?.addEventListener('click', () => {
+  if (!privateStore.length) {
+    window.alert('目前沒有私人行程可匯出。');
+    return;
+  }
+  const user = window.CAL_ACCESS?.user || {};
+  const cell = value => `"${String(value ?? '').replace(/"/g, '""')}"`;
+  const recLabels = { none: '不重複', weekly: '每週', monthly: '每月', yearly: '每年' };
+  const remLabels = { none: '不提醒', '10m': '開始前10分鐘', '30m': '開始前30分鐘', '1h': '開始前1小時', '1d9': '前一天上午9點', '0d9': '當天上午9點' };
+  const header = ['使用者姓名', '使用者Email', '內容', '日期', '開始時間', '結束時間', '地點', '週期', '重複至', '提醒', '會議連結', '備註'];
+  const rows = [...privateStore]
+    .sort((a, b) => String(a.date).localeCompare(String(b.date)) || String(a.startTime || '').localeCompare(String(b.startTime || '')))
+    .map(e => [user.displayName || '', user.email || '', e.title || '', e.date || '',
+      e.startTime || '', e.endTime || '', e.location || '',
+      recLabels[e.recurrence || 'none'], e.recurrenceUntil || '',
+      remLabels[e.reminder || 'none'], e.meetingLink || '', e.notes || ''].map(cell).join(','));
+  const csv = '\uFEFF' + [header.map(cell).join(','), ...rows].join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const now = new Date();
+  a.href = url;
+  a.download = `my-private-events-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+});
 document.addEventListener('keydown', event => {
   if (event.key === 'Escape') {
     closePrivateEventModal();
