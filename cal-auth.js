@@ -161,6 +161,14 @@
       /* 一律彈出視窗登入（V4 2026-10-17 修正版）：整頁跳轉在 iPhone Safari
          會遺失登入結果；popup 路徑在管理員手機長期實測正常。 */
       setAuthMessage('正在開啟 Google 登入…');
+      /* 看門狗：iPhone 主畫面 App 等環境下，登入彈窗可能永遠不回傳，
+         30 秒後自動恢復按鈕並提示改走重新整理或 Safari，避免頁面假死。 */
+      var popupSettled = false;
+      var popupWatchdog = setTimeout(function () {
+        if (popupSettled || auth.currentUser) return;
+        signInButton.disabled = false;
+        setAuthMessage('登入視窗尚未完成或卡住了。請再按一次登入，或點下方「重新整理頁面」後再試；若反覆發生，請改用 Safari 直接開啟本網址登入。', true);
+      }, 30000);
       auth.signInWithPopup(provider).catch(function (error) {
         var code = (error && error.code) || '';
         if (code === 'auth/popup-blocked') {
@@ -177,6 +185,8 @@
           setAuthMessage('Google 登入失敗：' + ((error && error.message) || code), true);
         }
       }).finally(function () {
+        popupSettled = true;
+        clearTimeout(popupWatchdog);
         if (!auth.currentUser) signInButton.disabled = false;
       });
     });
