@@ -16,7 +16,7 @@
   <title>寶光崇正2027年度全球行事曆</title>
   <link rel="preconnect" href="https://script.google.com">
   <link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=20261021-2">
+  <link rel="stylesheet" href="styles.css?v=20261021-3">
 </head>
 <body>
   <div id="authGate" class="auth-gate">
@@ -74,7 +74,7 @@
         <h2 id="privateEventTitle">新增行事曆</h2>
         <button id="privateEventClose" class="calendar-subscribe-close" type="button" aria-label="關閉">×</button>
       </div>
-      <p>新增的行程會存入「私人」分類，只有您自己的帳號看得到。</p>
+      <p id="privateFormDesc">新增的行程會存入「私人」分類，只有您自己的帳號看得到。</p>
       <form id="privateEventForm" class="private-event-form">
         <label>內容
           <input id="privateTitle" type="text" required maxlength="100" placeholder="例如：家庭聚餐" autocomplete="off">
@@ -124,6 +124,7 @@
         </label>
         <p class="calendar-subscribe-privacy">私人行程儲存在您的個人帳號空間，可跨裝置同步；只有您本人與管理員可以存取。提醒會在您開啟本網站時顯示；行程上的「加入 Google 日曆」可讓手機發出真正的提醒。</p>
         <div class="private-form-actions">
+          <button type="button" id="privateDelete" class="private-delete" hidden>刪除此行程</button>
           <button type="button" data-private-close>取消</button>
           <button type="submit" class="private-save">儲存</button>
         </div>
@@ -262,9 +263,9 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-  <script src="cal-auth.js?v=20261021-2"></script>
-  <script src="cal-access.js?v=20261021-2"></script>
-  <script src="cal-admin.js?v=20261021-2"></script>
-  <script src="app.js?v=20261021-2"></script>
+  <script src="cal-auth.js?v=20261021-3"></script>
+  <script src="cal-access.js?v=20261021-3"></script>
+  <script src="cal-admin.js?v=20261021-3"></script>
+  <script src="app.js?v=20261021-3"></script>
 </body>
 </html>
