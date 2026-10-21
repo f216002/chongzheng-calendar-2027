@@ -11,6 +11,8 @@
   var pendingList = null;
   var approvedList = null;
   var statusLine = null;
+  var approvedByUid = {};
+  var overviewData = null;
 
   function db() { return window.CAL_DB; }
   function ts() { return window.firebase.firestore.FieldValue.serverTimestamp(); }
@@ -67,6 +69,8 @@
 
       var appSnap = await db().collection('cal_approvedUsers').get();
       var approved = appSnap.docs.map(function (d) { return Object.assign({ uid: d.id }, d.data()); });
+      approvedByUid = {};
+      approved.forEach(function (item) { approvedByUid[item.uid] = item; });
       approved.sort(function (a, b) { return String(a.email || '').localeCompare(String(b.email || '')); });
       approvedList.replaceChildren(...(approved.length
         ? approved.map(function (item) {
@@ -151,6 +155,119 @@
     }
   }
 
+  /* ---------- 私人行程總覽與匯出 ---------- */
+  var RECURRENCE_LABELS = { none: '不重複', weekly: '每週', monthly: '每月', yearly: '每年' };
+  var REMINDER_LABELS = { none: '不提醒', '10m': '開始前10分鐘', '30m': '開始前30分鐘', '1h': '開始前1小時', '1d9': '前一天上午9點', '0d9': '當天上午9點' };
+
+  function csvCell(value) {
+    var text = String(value == null ? '' : value);
+    return '"' + text.replace(/"/g, '""') + '"';
+  }
+
+  function eventsToCsv(groups) {
+    var header = ['使用者姓名', '使用者Email', '內容', '日期', '開始時間', '結束時間', '地點', '週期', '重複至', '提醒', '會議連結', '備註'];
+    var lines = [header.map(csvCell).join(',')];
+    groups.forEach(function (group) {
+      group.events.forEach(function (e) {
+        lines.push([
+          group.displayName, group.email,
+          e.title || '', e.date || '', e.startTime || '', e.endTime || '',
+          e.location || '', RECURRENCE_LABELS[e.recurrence || 'none'] || '',
+          e.recurrenceUntil || '', REMINDER_LABELS[e.reminder || 'none'] || '',
+          e.meetingLink || '', e.notes || ''
+        ].map(csvCell).join(','));
+      });
+    });
+    return '\uFEFF' + lines.join('\r\n');
+  }
+
+  function downloadCsv(filename, text) {
+    var blob = new Blob([text], { type: 'text/csv;charset=utf-8' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+  }
+
+  function todayStamp() {
+    var now = new Date();
+    return `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+  }
+
+  async function loadOverview() {
+    var status = $('adminOverviewStatus');
+    var list = $('adminOverviewList');
+    var exportBtn = $('adminExportAll');
+    if (!db() || !status || !list) return;
+    status.textContent = '載入總覽中…';
+    try {
+      var snap = await db().collectionGroup('privateEvents').get();
+      var byUid = new Map();
+      snap.docs.forEach(function (doc) {
+        var ownerUid = doc.ref.parent && doc.ref.parent.parent ? doc.ref.parent.parent.id : '';
+        if (!byUid.has(ownerUid)) byUid.set(ownerUid, []);
+        byUid.get(ownerUid).push(Object.assign({ id: doc.id }, doc.data()));
+      });
+      var me = (window.CAL_ACCESS && window.CAL_ACCESS.user) || {};
+      overviewData = [...byUid.entries()].map(function ([uid, events]) {
+        var known = approvedByUid[uid];
+        var displayName = known ? (known.displayName || '（未提供姓名）')
+          : (uid === me.uid ? '管理員（本人）' : '（未知使用者）');
+        var email = known ? (known.email || '') : (uid === me.uid ? (me.email || '') : uid);
+        events.sort(function (a, b) {
+          return String(a.date || '').localeCompare(String(b.date || '')) ||
+            String(a.startTime || '').localeCompare(String(b.startTime || ''));
+        });
+        return { uid: uid, displayName: displayName, email: email, events: events };
+      }).sort(function (a, b) { return String(a.email).localeCompare(String(b.email)); });
+
+      list.replaceChildren(...(overviewData.length ? overviewData.map(function (group) {
+        var block = document.createElement('div');
+        block.className = 'admin-overview-user';
+        var h = document.createElement('h4');
+        h.textContent = `${group.displayName} <${group.email}>（${group.events.length} 筆）`;
+        var exp = document.createElement('button');
+        exp.type = 'button';
+        exp.className = 'account-button';
+        exp.textContent = '匯出此人';
+        exp.addEventListener('click', function () {
+          downloadCsv(`private-events-${todayStamp()}.csv`, eventsToCsv([group]));
+        });
+        h.append(exp);
+        var rows = document.createElement('div');
+        rows.className = 'admin-overview-events';
+        group.events.forEach(function (e) {
+          var row = document.createElement('div');
+          row.className = 'admin-overview-event';
+          var parts = [String(e.date || '').replaceAll('-', '/'),
+            [e.startTime, e.endTime].filter(Boolean).join('-'),
+            e.location || '',
+            e.recurrence && e.recurrence !== 'none' ? `🔁 ${RECURRENCE_LABELS[e.recurrence]}` : ''
+          ].filter(Boolean).join(' · ');
+          row.innerHTML = '';
+          var strong = document.createElement('strong');
+          strong.textContent = e.title || '';
+          var span = document.createElement('span');
+          span.textContent = parts ? `（${parts}）` : '';
+          row.append(strong, span);
+          rows.append(row);
+        });
+        block.append(h, rows);
+        return block;
+      }) : [emptyEl('目前沒有任何私人行程。')]));
+      var total = overviewData.reduce(function (sum, g) { return sum + g.events.length; }, 0);
+      status.textContent = `共 ${overviewData.length} 位使用者、${total} 筆私人行程。`;
+      if (exportBtn) exportBtn.disabled = !total;
+    } catch (error) {
+      console.error('載入私人行程總覽失敗：', error);
+      status.textContent = '載入失敗，請確認 Firestore 規則已更新後再試。';
+    }
+  }
+
   window.calOpenAdmin = function () {
     if (!modal) return;
     modal.hidden = false;
@@ -169,6 +286,10 @@
     approvedList = $('adminApprovedList');
     statusLine = $('adminStatus');
     $('adminClose')?.addEventListener('click', window.calCloseAdmin);
+    $('adminOverviewLoad')?.addEventListener('click', loadOverview);
+    $('adminExportAll')?.addEventListener('click', function () {
+      if (overviewData) downloadCsv(`private-events-all-${todayStamp()}.csv`, eventsToCsv(overviewData));
+    });
     document.querySelectorAll('[data-admin-close]').forEach(function (button) {
       button.addEventListener('click', window.calCloseAdmin);
     });
