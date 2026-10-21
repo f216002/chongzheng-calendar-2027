@@ -16,14 +16,35 @@
   <title>寶光崇正2027年度全球行事曆</title>
   <link rel="preconnect" href="https://script.google.com">
   <link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=20261021-1">
+  <link rel="stylesheet" href="styles.css?v=20261021-2">
 </head>
 <body>
+  <div id="authGate" class="auth-gate">
+    <div class="auth-gate-card">
+      <h2>寶光崇正2027年度全球行事曆</h2>
+      <p class="auth-gate-desc">本網站需以 Google 帳號登入，並經管理員核准後才能使用。登入後，您新增的私人行程只會顯示在您自己的帳號，不會與他人混在一起。</p>
+      <button id="calGoogleSignIn" class="cal-signin-button" type="button">使用 Google 帳號登入</button>
+      <p id="calAuthMessage" class="auth-message" aria-live="polite"></p>
+      <button id="calGateSignOut" class="cal-gate-signout" type="button" data-cal-sign-out hidden>登出</button>
+    </div>
+  </div>
+
   <header class="topbar">
     <div class="topbar-title">
       <h1>寶光崇正2027年度全球行事曆</h1>
     </div>
   </header>
+
+  <div id="accountBar" class="account-bar" hidden>
+    <img id="calAccountPhoto" class="account-photo" alt="" hidden>
+    <span id="calAccountName" class="account-name"></span>
+    <span id="calAccountEmail" class="account-email"></span>
+    <span class="account-spacer"></span>
+    <button id="calAdminButton" class="account-button admin" type="button" hidden>審核管理</button>
+    <button class="account-button" type="button" data-cal-sign-out>登出</button>
+  </div>
+
+  <div id="reminderBar" class="reminder-bar" hidden></div>
 
   <div id="floatingSpeechControls" class="floating-speech-controls" role="group" aria-label="懸浮朗讀控制" hidden>
     <button id="floatingSpeechPlay" class="speech-primary" type="button" aria-label="播放" title="播放">▶</button>
@@ -31,25 +52,18 @@
     <button id="floatingSpeechStop" type="button" aria-label="停止" title="停止">■</button>
   </div>
 
-  <div id="calendarSubscribeModal" class="calendar-subscribe-modal" hidden>
-    <button class="calendar-subscribe-backdrop" type="button" data-subscribe-close aria-label="關閉加入行事曆視窗"></button>
-    <section class="calendar-subscribe-dialog" role="dialog" aria-modal="true" aria-labelledby="calendarSubscribeTitle" aria-describedby="calendarSubscribeDescription">
+  <div id="adminModal" class="calendar-subscribe-modal" hidden>
+    <button class="calendar-subscribe-backdrop" type="button" data-admin-close aria-label="關閉審核管理視窗"></button>
+    <section class="calendar-subscribe-dialog admin-dialog" role="dialog" aria-modal="true" aria-labelledby="adminTitle">
       <div class="calendar-subscribe-heading">
-        <h2 id="calendarSubscribeTitle">加入我的行事曆</h2>
-        <button id="calendarSubscribeClose" class="calendar-subscribe-close" type="button" aria-label="關閉">×</button>
+        <h2 id="adminTitle">審核管理</h2>
+        <button id="adminClose" class="calendar-subscribe-close" type="button" aria-label="關閉">×</button>
       </div>
-      <p id="calendarSubscribeDescription">選擇您平常使用的行事曆。訂閱後，公版活動更新時會自動同步。</p>
-      <div class="calendar-subscribe-options">
-        <a id="googleCalendarSubscribe" class="calendar-subscribe-option google" href="#" target="_blank" rel="noopener noreferrer">
-          <span class="calendar-subscribe-icon" aria-hidden="true">G</span>
-          <span><strong>Google 日曆</strong><small>Android、電腦或 Google 帳號</small></span>
-        </a>
-        <a id="appleCalendarSubscribe" class="calendar-subscribe-option apple" href="#">
-          <span class="calendar-subscribe-icon" aria-hidden="true"></span>
-          <span><strong>iPhone／Apple 日曆</strong><small>在 iPhone、iPad 或 Mac 訂閱</small></span>
-        </a>
-      </div>
-      <p class="calendar-subscribe-privacy">只加入公版活動；本網站不會讀取或上傳您的私人行程。</p>
+      <p id="adminStatus" class="admin-status" aria-live="polite"></p>
+      <h3 class="admin-section-title">待審核申請</h3>
+      <div id="adminPendingList" class="admin-list"></div>
+      <h3 class="admin-section-title">已核准使用者</h3>
+      <div id="adminApprovedList" class="admin-list"></div>
     </section>
   </div>
 
@@ -60,7 +74,7 @@
         <h2 id="privateEventTitle">新增行事曆</h2>
         <button id="privateEventClose" class="calendar-subscribe-close" type="button" aria-label="關閉">×</button>
       </div>
-      <p>新增的行程會存入「私人」分類，只有您在這台裝置上看得到。</p>
+      <p>新增的行程會存入「私人」分類，只有您自己的帳號看得到。</p>
       <form id="privateEventForm" class="private-event-form">
         <label>內容
           <input id="privateTitle" type="text" required maxlength="100" placeholder="例如：家庭聚餐" autocomplete="off">
@@ -79,7 +93,36 @@
         <label>地點
           <input id="privateLocation" type="text" maxlength="100" placeholder="例如：台南光輝佛堂" autocomplete="off">
         </label>
-        <p class="calendar-subscribe-privacy">私人行程只儲存在這台裝置的瀏覽器，不會上傳，也不會同步到其他裝置。</p>
+        <div class="private-time-row">
+          <label>週期
+            <select id="privateRecurrence">
+              <option value="none">不重複</option>
+              <option value="weekly">每週</option>
+              <option value="monthly">每月</option>
+              <option value="yearly">每年</option>
+            </select>
+          </label>
+          <label>重複至（可留空）
+            <input id="privateUntil" type="date">
+          </label>
+        </div>
+        <label>提醒
+          <select id="privateReminder">
+            <option value="none">不提醒</option>
+            <option value="10m">開始前 10 分鐘</option>
+            <option value="30m">開始前 30 分鐘</option>
+            <option value="1h">開始前 1 小時</option>
+            <option value="1d9">前一天上午 9 點</option>
+            <option value="0d9">當天上午 9 點</option>
+          </select>
+        </label>
+        <label>會議連結（線上會議用）
+          <input id="privateMeeting" type="url" maxlength="300" placeholder="https://meet.google.com/…" autocomplete="off">
+        </label>
+        <label>備註
+          <textarea id="privateNotes" rows="2" maxlength="300" placeholder="要帶的東西、注意事項等"></textarea>
+        </label>
+        <p class="calendar-subscribe-privacy">私人行程儲存在您的個人帳號空間，可跨裝置同步；只有您本人與管理員可以存取。提醒會在您開啟本網站時顯示；行程上的「加入 Google 日曆」可讓手機發出真正的提醒。</p>
         <div class="private-form-actions">
           <button type="button" data-private-close>取消</button>
           <button type="submit" class="private-save">儲存</button>
@@ -100,10 +143,7 @@
                 <span class="subscribe-calendar-icon" aria-hidden="true">＋</span>
                 <span class="subscribe-calendar-label">新增行事曆</span>
               </button>
-              <button id="subscribeCalendarButton" class="subscribe-calendar-button" type="button" aria-haspopup="dialog" aria-controls="calendarSubscribeModal" title="加入我的行事曆">
-                <span class="subscribe-calendar-icon" aria-hidden="true">＋</span>
-                <span class="subscribe-calendar-label">加入我的行事曆</span>
-              </button>
+              
               <button id="refreshButton" class="icon-button panel-refresh-button" type="button" aria-label="重新載入資料" title="更新資料">↻ <span>更新資料</span></button>
             </div>
           </div>
@@ -217,9 +257,14 @@
   <footer>
     資料來源：寶光崇正道務中心 Google 試算表
     <span aria-hidden="true"> · </span>
-    <a href="privacy.html">個人行事曆隱私權說明</a>
+    <a href="privacy.html">隱私權說明</a>
   </footer>
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <script src="app.js?v=20261021-1"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="cal-auth.js?v=20261021-2"></script>
+  <script src="cal-access.js?v=20261021-2"></script>
+  <script src="cal-admin.js?v=20261021-2"></script>
+  <script src="app.js?v=20261021-2"></script>
 </body>
 </html>
