@@ -90,6 +90,10 @@ const elements = {
   privateStart: document.querySelector('#privateStart'),
   privateEnd: document.querySelector('#privateEnd'),
   privateLocation: document.querySelector('#privateLocation'),
+  privateEventTitle: document.querySelector('#privateEventTitle'),
+  privateFormDesc: document.querySelector('#privateFormDesc'),
+  privateSave: document.querySelector('#privateEventForm .private-save'),
+  privateDelete: document.querySelector('#privateDelete'),
   privateRecurrence: document.querySelector('#privateRecurrence'),
   privateUntil: document.querySelector('#privateUntil'),
   privateReminder: document.querySelector('#privateReminder'),
@@ -172,7 +176,7 @@ function applyCalendarData(payload, preserveView = false) {
   state.events = payload.events.map(normalizeEvent).filter(event => event.date);
   if (!preserveView) {
     state.selected = new Set(state.categories.filter(item => item.defaultSelected).map(item => item.code));
-    if (state.privateEvents.length) state.selected.add(PRIVATE_CALENDAR_CODE);
+    state.selected.add(PRIVATE_CALENDAR_CODE);
     const firstDate = state.events.map(item => item.date).sort()[0] || '2027-01-01';
     state.month = firstDate.slice(0, 7);
   }
@@ -305,6 +309,7 @@ function weekdayForDate(date) {
    資料存放在 cal_users/{uid}/privateEvents，只有本人（與管理員）可存取，
    不會與其他人的行程混在一起。讀寫一律先經 cal-access 審核狀態把關。 */
 let privateStore = [];
+let editingPrivateId = null;
 let privateLoadedForUid = '';
 
 const RECURRENCE_LABELS = { weekly: '每週', monthly: '每月', yearly: '每年' };
@@ -529,12 +534,38 @@ async function removePrivateEvent(rawId) {
   }
 }
 
-function openPrivateEventModal() {
+function openPrivateEventModal(rawId) {
   if (!elements.privateEventModal) return;
+  const editRaw = typeof rawId === 'string'
+    ? privateStore.find(item => item.id === rawId) : null;
+  editingPrivateId = editRaw ? editRaw.id : null;
   elements.privateEventForm?.reset();
   const now = new Date();
   const localToday = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-  if (elements.privateDate) elements.privateDate.value = localToday;
+  if (editRaw) {
+    elements.privateEventTitle.textContent = '編輯私人行程';
+    if (elements.privateSave) elements.privateSave.textContent = '儲存修改';
+    elements.privateTitle.value = editRaw.title || '';
+    elements.privateDate.value = editRaw.date || '';
+    elements.privateStart.value = editRaw.startTime || '';
+    elements.privateEnd.value = editRaw.endTime || '';
+    elements.privateLocation.value = editRaw.location || '';
+    elements.privateRecurrence.value = editRaw.recurrence || 'none';
+    elements.privateUntil.value = editRaw.recurrenceUntil || '';
+    elements.privateReminder.value = editRaw.reminder || 'none';
+    elements.privateMeeting.value = editRaw.meetingLink || '';
+    elements.privateNotes.value = editRaw.notes || '';
+    elements.privateFormDesc.textContent = editRaw.recurrence && editRaw.recurrence !== 'none'
+      ? '正在編輯週期行程：修改會套用到整個系列。'
+      : '正在編輯私人行程。';
+    elements.privateDelete.hidden = false;
+  } else {
+    elements.privateEventTitle.textContent = '新增行事曆';
+    if (elements.privateSave) elements.privateSave.textContent = '儲存';
+    elements.privateFormDesc.textContent = '新增的行程會存入「私人」分類，只有您自己的帳號看得到。';
+    elements.privateDelete.hidden = true;
+    if (elements.privateDate) elements.privateDate.value = localToday;
+  }
   elements.privateEventModal.hidden = false;
   document.body.classList.add('modal-open');
   requestAnimationFrame(() => elements.privateTitle?.focus());
@@ -569,14 +600,24 @@ async function handlePrivateEventSubmit(submitEvent) {
   try {
     const user = window.calRequireApproved();
     if (saveButton) saveButton.disabled = true;
-    const data = {
-      title, date, startTime, endTime, location,
-      recurrence, recurrenceUntil, reminder, meetingLink, notes,
-      createdAt: window.firebase.firestore.FieldValue.serverTimestamp()
-    };
-    const ref = await window.CAL_DB.collection('cal_users').doc(user.uid)
-      .collection('privateEvents').add(data);
-    privateStore.push({ ...data, id: ref.id, createdAt: Date.now() });
+    const plain = { title, date, startTime, endTime, location,
+      recurrence, recurrenceUntil, reminder, meetingLink, notes };
+    const col = window.CAL_DB.collection('cal_users').doc(user.uid)
+      .collection('privateEvents');
+    if (editingPrivateId) {
+      await col.doc(editingPrivateId).set({
+        ...plain,
+        updatedAt: window.firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+      const idx = privateStore.findIndex(item => item.id === editingPrivateId);
+      if (idx >= 0) privateStore[idx] = { ...privateStore[idx], ...plain };
+    } else {
+      const ref = await col.add({
+        ...plain,
+        createdAt: window.firebase.firestore.FieldValue.serverTimestamp()
+      });
+      privateStore.push({ ...plain, id: ref.id, createdAt: Date.now() });
+    }
     refreshPrivateEvents();
     closePrivateEventModal();
     state.selected.add(PRIVATE_CALENDAR_CODE);
@@ -848,6 +889,17 @@ function createEvent(event) {
       notes.textContent = event.notes;
       item.append(notes);
     }
+    const edit = document.createElement('button');
+    edit.type = 'button';
+    edit.className = 'private-event-edit';
+    edit.textContent = '✎';
+    edit.title = '編輯這筆私人行程';
+    edit.setAttribute('aria-label', `編輯私人行程 ${event.name}`);
+    edit.addEventListener('click', clickEvent => {
+      clickEvent.stopPropagation();
+      openPrivateEventModal(event.rawId);
+    });
+    item.append(edit);
     const remove = document.createElement('button');
     remove.type = 'button';
     remove.className = 'private-event-delete';
@@ -1174,6 +1226,17 @@ document.querySelectorAll('[data-private-close]').forEach(button => {
   button.addEventListener('click', closePrivateEventModal);
 });
 elements.privateEventForm?.addEventListener('submit', handlePrivateEventSubmit);
+elements.privateDelete?.addEventListener('click', () => {
+  if (!editingPrivateId) return;
+  const raw = privateStore.find(item => item.id === editingPrivateId);
+  const message = raw && raw.recurrence && raw.recurrence !== 'none'
+    ? `確定要刪除私人行程「${raw.title}」整個週期系列嗎？`
+    : `確定要刪除私人行程「${raw?.title || ''}」嗎？`;
+  if (!window.confirm(message)) return;
+  const id = editingPrivateId;
+  closePrivateEventModal();
+  removePrivateEvent(id);
+});
 elements.filterScrollLeft?.addEventListener('click', () => scrollFilters(-1));
 elements.filterScrollRight?.addEventListener('click', () => scrollFilters(1));
 elements.filters.addEventListener('scroll', updateFilterScrollGuide, { passive: true });
