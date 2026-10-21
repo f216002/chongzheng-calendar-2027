@@ -16,7 +16,7 @@
   <title>寶光崇正2027年度全球行事曆</title>
   <link rel="preconnect" href="https://script.google.com">
   <link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=20260917-4">
+  <link rel="stylesheet" href="styles.css?v=20261021-1">
 </head>
 <body>
   <header class="topbar">
@@ -53,6 +53,41 @@
     </section>
   </div>
 
+  <div id="privateEventModal" class="calendar-subscribe-modal" hidden>
+    <button class="calendar-subscribe-backdrop" type="button" data-private-close aria-label="關閉新增行事曆視窗"></button>
+    <section class="calendar-subscribe-dialog" role="dialog" aria-modal="true" aria-labelledby="privateEventTitle">
+      <div class="calendar-subscribe-heading">
+        <h2 id="privateEventTitle">新增行事曆</h2>
+        <button id="privateEventClose" class="calendar-subscribe-close" type="button" aria-label="關閉">×</button>
+      </div>
+      <p>新增的行程會存入「私人」分類，只有您在這台裝置上看得到。</p>
+      <form id="privateEventForm" class="private-event-form">
+        <label>內容
+          <input id="privateTitle" type="text" required maxlength="100" placeholder="例如：家庭聚餐" autocomplete="off">
+        </label>
+        <label>日期
+          <input id="privateDate" type="date" required>
+        </label>
+        <div class="private-time-row">
+          <label>開始時間
+            <input id="privateStart" type="time">
+          </label>
+          <label>結束時間
+            <input id="privateEnd" type="time">
+          </label>
+        </div>
+        <label>地點
+          <input id="privateLocation" type="text" maxlength="100" placeholder="例如：台南光輝佛堂" autocomplete="off">
+        </label>
+        <p class="calendar-subscribe-privacy">私人行程只儲存在這台裝置的瀏覽器，不會上傳，也不會同步到其他裝置。</p>
+        <div class="private-form-actions">
+          <button type="button" data-private-close>取消</button>
+          <button type="submit" class="private-save">儲存</button>
+        </div>
+      </form>
+    </section>
+  </div>
+
   <main>
     <div class="top-controls-layout">
       <section class="control-panel" aria-labelledby="filterTitle">
@@ -61,6 +96,10 @@
           <div class="filter-title-row">
             <h2 id="filterTitle">選擇要查看的行事曆</h2>
             <div class="panel-heading-actions">
+              <button id="addPrivateEventButton" class="subscribe-calendar-button" type="button" aria-haspopup="dialog" aria-controls="privateEventModal" title="新增私人行事曆">
+                <span class="subscribe-calendar-icon" aria-hidden="true">＋</span>
+                <span class="subscribe-calendar-label">新增行事曆</span>
+              </button>
               <button id="subscribeCalendarButton" class="subscribe-calendar-button" type="button" aria-haspopup="dialog" aria-controls="calendarSubscribeModal" title="加入我的行事曆">
                 <span class="subscribe-calendar-icon" aria-hidden="true">＋</span>
                 <span class="subscribe-calendar-label">加入我的行事曆</span>
@@ -181,6 +220,6 @@
     <a href="privacy.html">個人行事曆隱私權說明</a>
   </footer>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <script src="app.js?v=20260917-4"></script>
+  <script src="app.js?v=20261021-1"></script>
 </body>
 </html>
