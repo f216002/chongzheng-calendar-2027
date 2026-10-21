@@ -1569,6 +1569,14 @@ body.gate-open { overflow: hidden; }
 .cal-gate-reload { font: inherit; cursor: pointer; margin-top: 0.9rem; padding: 0.45rem 1.1rem; border-radius: 999px; border: 1px solid #b9cad5; background: #eef5f8; color: #0d6284; }
 .cal-gate-reload:active { transform: translateY(1px); }
 .auth-gate-hint { margin: 0.5rem 0 0; color: var(--muted); font-size: 0.8rem; }
+.auth-signing-in { padding: 0.6rem 0 0.2rem; font-size: 1.05rem; color: #102f47; }
+.auth-signing-in p { margin: 0; }
+.auth-gate-card.is-signing-in h2,
+.auth-gate-card.is-signing-in .auth-gate-desc,
+.auth-gate-card.is-signing-in .cal-signin-button,
+.auth-gate-card.is-signing-in .auth-message,
+.auth-gate-card.is-signing-in .auth-gate-hint,
+.auth-gate-card.is-signing-in .cal-gate-signout { display: none; }
 .cal-signin-button[hidden] { display: none; }
 .auth-message { min-height: 1.5em; margin: 0.9rem 0 0; color: #315e78; font-size: 0.92rem; line-height: 1.6; }
 .auth-message.error { color: #b3261e; }
