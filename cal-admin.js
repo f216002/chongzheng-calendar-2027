@@ -205,19 +205,48 @@
     if (!db() || !status || !list) return;
     status.textContent = '載入總覽中…';
     try {
-      var snap = await db().collectionGroup('privateEvents').get();
+      /* 逐位使用者讀取各自的 privateEvents 子集合（現行規則已允許管理員讀取；
+         不用 collectionGroup 查詢，該查詢需額外的遞迴萬用規則）。 */
+      var userInfo = new Map();
+      var reqSnap = await db().collection('cal_accessRequests').get();
+      reqSnap.docs.forEach(function (d) {
+        var data = d.data() || {};
+        userInfo.set(d.id, { displayName: data.displayName || '', email: data.email || '' });
+      });
+      var appSnap2 = await db().collection('cal_approvedUsers').get();
+      appSnap2.docs.forEach(function (d) {
+        var data = d.data() || {};
+        userInfo.set(d.id, { displayName: data.displayName || '', email: data.email || '' });
+      });
+      var me0 = (window.CAL_ACCESS && window.CAL_ACCESS.user) || {};
+      if (me0.uid && !userInfo.has(me0.uid)) {
+        userInfo.set(me0.uid, { displayName: me0.displayName || '', email: me0.email || '' });
+      }
+      var perUser = await Promise.all([...userInfo.keys()].map(async function (uid) {
+        try {
+          var snap = await db().collection('cal_users').doc(uid)
+            .collection('privateEvents').get();
+          return { uid: uid, docs: snap.docs };
+        } catch (error) {
+          console.warn('略過無法讀取的私人行程：', uid, error);
+          return { uid: uid, docs: [] };
+        }
+      }));
       var byUid = new Map();
-      snap.docs.forEach(function (doc) {
-        var ownerUid = doc.ref.parent && doc.ref.parent.parent ? doc.ref.parent.parent.id : '';
-        if (!byUid.has(ownerUid)) byUid.set(ownerUid, []);
-        byUid.get(ownerUid).push(Object.assign({ id: doc.id }, doc.data()));
+      perUser.forEach(function ({ uid, docs }) {
+        if (docs.length) {
+          byUid.set(uid, docs.map(function (doc) {
+            return Object.assign({ id: doc.id }, doc.data());
+          }));
+        }
       });
       var me = (window.CAL_ACCESS && window.CAL_ACCESS.user) || {};
       overviewData = [...byUid.entries()].map(function ([uid, events]) {
-        var known = approvedByUid[uid];
-        var displayName = known ? (known.displayName || '（未提供姓名）')
-          : (uid === me.uid ? '管理員（本人）' : '（未知使用者）');
-        var email = known ? (known.email || '') : (uid === me.uid ? (me.email || '') : uid);
+        var known = approvedByUid[uid] || userInfo.get(uid);
+        var displayName = uid === me.uid ? '管理員（本人）'
+          : (known && known.displayName ? known.displayName : '（未提供姓名）');
+        var email = known && known.email ? known.email
+          : (uid === me.uid ? (me.email || '') : uid);
         events.sort(function (a, b) {
           return String(a.date || '').localeCompare(String(b.date || '')) ||
             String(a.startTime || '').localeCompare(String(b.startTime || ''));
@@ -264,7 +293,7 @@
       if (exportBtn) exportBtn.disabled = !total;
     } catch (error) {
       console.error('載入私人行程總覽失敗：', error);
-      status.textContent = '載入失敗，請確認 Firestore 規則已更新後再試。';
+      status.textContent = '載入失敗，請稍後再試。';
     }
   }
 
