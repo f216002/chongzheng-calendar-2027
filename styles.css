@@ -73,7 +73,7 @@ main { width: min(1420px, calc(100% - 2rem)); margin: 1.2rem auto 3rem; }
 .status.error { color: #9d2c25; background: #fff1ef; border-radius: .8rem; }
 .status[hidden] { display: none; }
 .calendar { display: grid; gap: .85rem; }
-.date-card { display: grid; grid-template-columns: 130px 1fr; overflow: hidden; background: var(--card); border: 1px solid var(--line); border-radius: .9rem; }
+.date-card { scroll-margin-top: .75rem; display: grid; grid-template-columns: 130px 1fr; overflow: hidden; background: var(--card); border: 1px solid var(--line); border-radius: .9rem; }
 .date-meta { padding: .95rem; background: #edf4f7; border-right: 1px solid var(--line); }
 .date-meta time { display: block; font-size: 1.1rem; font-weight: 800; }
 .weekday { display: inline-block; margin-top: .35rem; padding: .15rem .5rem; color: white; background: var(--brand); border-radius: 999px; font-size: .8rem; }
