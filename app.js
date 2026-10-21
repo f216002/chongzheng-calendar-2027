@@ -49,7 +49,8 @@ const REGIONAL_CLASS_KEYWORDS = [
 const state = {
   categories: [], events: [], selected: new Set(), month: null,
   activeRegion: 'taiwan', hasRendered: false,
-  privateEvents: []
+  privateEvents: [],
+  pendingScrollDate: null
 };
 const elements = {
   filters: document.querySelector('#filters'), calendar: document.querySelector('#calendar'),
@@ -171,8 +172,18 @@ function applyCalendarData(payload, preserveView = false) {
   if (!preserveView) {
     state.selected = new Set(state.categories.filter(item => item.defaultSelected).map(item => item.code));
     state.selected.add(PRIVATE_CALENDAR_CODE);
-    const firstDate = state.events.map(item => item.date).sort()[0] || '2027-01-01';
-    state.month = firstDate.slice(0, 7);
+    const sortedDates = state.events.map(item => item.date).sort();
+    const firstDate = sortedDates[0] || '2027-01-01';
+    const lastDate = sortedDates[sortedDates.length - 1] || firstDate;
+    const now = new Date();
+    const todayIso = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const firstMonth = firstDate.slice(0, 7);
+    const lastMonth = lastDate.slice(0, 7);
+    const todayMonth = todayIso.slice(0, 7);
+    /* 開啟時定位到今天：開啟今天所在月份（超出資料範圍時夾到最近的月份），
+       繪製後把今天（或今天之後最近）的日期卡捲到最上方，前後日期仍可滑動查看。 */
+    state.month = todayMonth < firstMonth ? firstMonth : (todayMonth > lastMonth ? lastMonth : todayMonth);
+    state.pendingScrollDate = todayIso;
   }
   state.hasRendered = true;
   renderRegionTabs();
@@ -791,6 +802,12 @@ function renderCalendar() {
     .map(([date, events]) => createDateCard(date, events));
   elements.calendar.replaceChildren(...(cards.length ? cards : [emptyMessage()]));
   elements.status.hidden = true;
+  if (state.pendingScrollDate) {
+    const targetDate = state.pendingScrollDate;
+    state.pendingScrollDate = null;
+    const target = cards.find(card => card.dataset.date >= targetDate) || cards[cards.length - 1];
+    if (target) requestAnimationFrame(() => target.scrollIntoView({ block: 'start' }));
+  }
 }
 
 function groupByDate(events) {
