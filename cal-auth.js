@@ -43,6 +43,16 @@
   var signInButton = $('calGoogleSignIn');
   var authMessage = $('calAuthMessage');
 
+  /* 登入中極簡模式：過渡期間卡片只顯示「登入中…請稍待」與重新整理鍵，
+     避免使用者誤以為要再按一次登入（Cheng 2026-10-21 指示）。 */
+  var gateCard = document.querySelector('.auth-gate-card');
+  var signingInBox = $('calSigningIn');
+  function setSigningInMode(on) {
+    if (gateCard) gateCard.classList.toggle('is-signing-in', !!on);
+    if (signingInBox) signingInBox.hidden = !on;
+  }
+  window.calSetSigningInMode = setSigningInMode;
+
   function setAuthMessage(message, isError) {
     if (!authMessage) return;
     authMessage.textContent = message || '';
@@ -160,13 +170,15 @@
       signInButton.disabled = true;
       /* 一律彈出視窗登入（V4 2026-10-17 修正版）：整頁跳轉在 iPhone Safari
          會遺失登入結果；popup 路徑在管理員手機長期實測正常。 */
-      setAuthMessage('正在開啟 Google 登入…');
+      setAuthMessage('');
+      setSigningInMode(true);
       /* 看門狗：iPhone 主畫面 App 等環境下，登入彈窗可能永遠不回傳，
          30 秒後自動恢復按鈕並提示改走重新整理或 Safari，避免頁面假死。 */
       var popupSettled = false;
       var popupWatchdog = setTimeout(function () {
         if (popupSettled || auth.currentUser) return;
         signInButton.disabled = false;
+        setSigningInMode(false);
         setAuthMessage('登入視窗尚未完成或卡住了。請再按一次登入，或點下方「重新整理頁面」後再試；若反覆發生，請改用 Safari 直接開啟本網址登入。', true);
       }, 30000);
       auth.signInWithPopup(provider).catch(function (error) {
@@ -187,7 +199,10 @@
       }).finally(function () {
         popupSettled = true;
         clearTimeout(popupWatchdog);
-        if (!auth.currentUser) signInButton.disabled = false;
+        if (!auth.currentUser) {
+          signInButton.disabled = false;
+          setSigningInMode(false);
+        }
       });
     });
   }
