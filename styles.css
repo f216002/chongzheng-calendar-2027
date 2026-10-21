@@ -1661,3 +1661,10 @@ body.gate-open { overflow: hidden; }
 .event-meeting { display: inline-block; margin-top: 0.35rem; font-size: 0.85rem; font-weight: 700; color: #087f8c; }
 .event-gcal { display: inline-block; margin-top: 0.35rem; margin-left: 0.7rem; font-size: 0.85rem; color: #315e78; }
 .event-notes { margin: 0.3rem 0 0; color: var(--muted); font-size: 0.85rem; white-space: pre-line; }
+
+/* 私人行程編輯（2026-10-21） */
+.event.private-event { padding-right: 4.4rem; }
+.private-event-edit { position: absolute; top: 0.3rem; right: 2.35rem; width: 1.7rem; height: 1.7rem; padding: 0; border: 0; border-radius: 50%; background: transparent; color: #315e78; font-size: 1rem; line-height: 1; cursor: pointer; }
+.private-event-edit:hover { background: rgba(49, 94, 120, 0.12); }
+.private-form-actions .private-delete { margin-right: auto; color: #b3261e; border-color: #e5b4b0; background: #fff; }
+.private-form-actions .private-delete[hidden] { display: none; }
