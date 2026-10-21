@@ -1638,11 +1638,11 @@ body.gate-open { overflow: hidden; }
 .auth-message.error { color: #b3261e; }
 .cal-gate-signout { margin-top: 0.6rem; font: inherit; cursor: pointer; padding: 0.45rem 1.1rem; border-radius: 999px; border: 1px solid var(--line); background: #f8fafb; }
 .cal-gate-signout[hidden] { display: none; }
-.account-bar { display: flex; align-items: center; gap: 0.55rem; max-width: 1180px; margin: 0.6rem auto 0; padding: 0.45rem 0.9rem; background: #fff; border: 1px solid var(--line); border-radius: 999px; box-shadow: 0 4px 14px rgba(7, 47, 71, 0.06); font-size: 0.9rem; }
+.account-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.55rem; max-width: 1180px; margin: 0.6rem auto 0; padding: 0.45rem 0.9rem; background: #fff; border: 1px solid var(--line); border-radius: 999px; box-shadow: 0 4px 14px rgba(7, 47, 71, 0.06); font-size: 0.9rem; }
 .account-bar[hidden] { display: none; }
 .account-photo { width: 28px; height: 28px; border-radius: 50%; }
-.account-name { font-weight: 700; color: #102f47; }
-.account-email { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.account-name { font-weight: 700; color: #102f47; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.account-email { color: var(--muted); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .account-spacer { flex: 1; }
 .account-button { font: inherit; cursor: pointer; padding: 0.35rem 0.85rem; border-radius: 999px; border: 1px solid var(--line); background: #f8fafb; white-space: nowrap; }
 .account-button.admin { background: #087f8c; border-color: #087f8c; color: #fff; font-weight: 700; }
