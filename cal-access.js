@@ -18,6 +18,14 @@
   }
   window.CAL_DB = db;
 
+
+  /* Firestore 讀寫逾時保護：網路卡住時不讓閘門永遠停在「正在確認登入狀態」。 */
+  function withTimeout(promise, ms) {
+    return Promise.race([promise, new Promise(function (resolve, reject) {
+      setTimeout(function () { reject(new Error('確認逾時')); }, ms);
+    })]);
+  }
+
   function requestDoc(uid) { return db.collection('cal_accessRequests').doc(uid); }
 
   function isAdminUser(user) {
@@ -63,7 +71,7 @@
     /* 管理員本人：不經審核，直接通過。 */
     if (isAdminUser(user)) { publishAccess(user, 'approved', true); return; }
 
-    var approvalSnap = await db.collection('cal_approvedUsers').doc(user.uid).get();
+    var approvalSnap = await withTimeout(db.collection('cal_approvedUsers').doc(user.uid).get(), 15000);
     if (approvalSnap.exists) {
       var data = approvalSnap.data() || {};
       if (data.active === true) { publishAccess(user, 'approved', false); return; }
@@ -73,12 +81,12 @@
 
     /* 沒有核准記錄：查看或建立申請。 */
     var reqRef = requestDoc(user.uid);
-    var reqSnap = await reqRef.get();
+    var reqSnap = await withTimeout(reqRef.get(), 15000);
     var status = 'pending';
     if (reqSnap.exists) {
       status = (reqSnap.data() || {}).status || 'pending';
     } else {
-      await reqRef.set({
+      await withTimeout(reqRef.set({
         uid: user.uid,
         email: user.email || '',
         displayName: user.displayName || '',
@@ -86,7 +94,7 @@
         status: 'pending',
         requestedAt: window.firebase.firestore.FieldValue.serverTimestamp(),
         updatedAt: window.firebase.firestore.FieldValue.serverTimestamp()
-      });
+      }), 15000);
     }
     publishAccess(user, status, false);
   }
