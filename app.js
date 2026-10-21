@@ -683,6 +683,9 @@ function handleAccessChanged() {
   elements.accountBar.hidden = true;
   elements.authGate.hidden = false;
   document.body.classList.add('gate-open');
+  if (window.calSetSigningInMode) {
+    window.calSetSigningInMode(access.status === 'checking' && Boolean(user));
+  }
   const signedIn = Boolean(user);
   elements.calGoogleSignIn.hidden = signedIn;
   elements.calGateSignOut.hidden = !signedIn;
