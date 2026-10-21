@@ -1668,3 +1668,12 @@ body.gate-open { overflow: hidden; }
 .private-event-edit:hover { background: rgba(49, 94, 120, 0.12); }
 .private-form-actions .private-delete { margin-right: auto; color: #b3261e; border-color: #e5b4b0; background: #fff; }
 .private-form-actions .private-delete[hidden] { display: none; }
+
+/* 私人行程總覽與匯出（2026-10-21） */
+.admin-overview-actions { display: flex; gap: 0.5rem; margin-bottom: 0.4rem; }
+.admin-overview-list { display: grid; gap: 0.9rem; }
+.admin-overview-user h4 { margin: 0 0 0.35rem; font-size: 0.95rem; color: #102f47; }
+.admin-overview-user h4 .account-button { margin-left: 0.5rem; font-size: 0.8rem; padding: 0.15rem 0.6rem; }
+.admin-overview-events { display: grid; gap: 0.25rem; }
+.admin-overview-event { font-size: 0.86rem; color: #37474f; padding: 0.3rem 0.55rem; background: #fbfdfe; border: 1px solid var(--line); border-radius: 0.5rem; }
+.admin-overview-event strong { color: #102f47; }
