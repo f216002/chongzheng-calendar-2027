@@ -290,10 +290,11 @@ function loadData({ force = false, showLoading = !state.hasRendered } = {}) {
 
 function categoriesForRegion(region = state.activeRegion) {
   const codes = region === 'global' ? GLOBAL_CODES : TAIWAN_CODES;
-  return [
-    ...state.categories.filter(category => codes.has(category.code)),
-    PRIVATE_CALENDAR_CATEGORY
-  ];
+  const list = state.categories.filter(category => codes.has(category.code));
+  /* 「私人」固定排在「仙佛聖誕/節日活動/開會」之後（Cheng 2026-10-21 指定）。 */
+  const sharedIndex = list.findIndex(category => category.code === 'shared');
+  list.splice(sharedIndex >= 0 ? sharedIndex + 1 : list.length, 0, PRIVATE_CALENDAR_CATEGORY);
+  return list;
 }
 
 function categoryByCode(code) {
