@@ -49,24 +49,12 @@ const REGIONAL_CLASS_KEYWORDS = [
 const state = {
   categories: [], events: [], selected: new Set(), month: null,
   activeRegion: 'taiwan', hasRendered: false,
-  speechDate: null,
   privateEvents: []
-};
-const speechState = {
-  queue: [], index: 0, playing: false, paused: false, lastYear: null
 };
 const elements = {
   filters: document.querySelector('#filters'), calendar: document.querySelector('#calendar'),
   status: document.querySelector('#status'), monthLabel: document.querySelector('#monthLabel'),
   yearLabel: document.querySelector('#yearLabel'), regionDescription: document.querySelector('#regionDescription'),
-  speechStatus: document.querySelector('#speechStatus'),
-  speechPlay: document.querySelector('#speechPlay'),
-  speechPause: document.querySelector('#speechPause'),
-  speechStop: document.querySelector('#speechStop'),
-  floatingSpeechControls: document.querySelector('#floatingSpeechControls'),
-  floatingSpeechPlay: document.querySelector('#floatingSpeechPlay'),
-  floatingSpeechPause: document.querySelector('#floatingSpeechPause'),
-  floatingSpeechStop: document.querySelector('#floatingSpeechStop'),
   filterScrollGuide: document.querySelector('#filterScrollGuide'),
   filterScrollLeft: document.querySelector('#filterScrollLeft'),
   filterScrollRight: document.querySelector('#filterScrollRight'),
@@ -791,7 +779,6 @@ function getVisibleEvents() {
 }
 
 function renderCalendar() {
-  stopSpeech(false);
   const [year, month] = state.month.split('-').map(Number);
   const searching = hasActiveSearch();
   elements.yearLabel.textContent = searching ? '目前已勾選分類' : `${year} 年`;
@@ -815,16 +802,6 @@ function groupByDate(events) {
 function createDateCard(date, events) {
   const card = document.createElement('article'); card.className = 'date-card';
   card.dataset.date = date;
-  card.tabIndex = 0;
-  card.setAttribute('aria-label', `選擇 ${date.replaceAll('-', '/')} 作為朗讀起點`);
-  card.classList.toggle('speech-selected', state.speechDate === date);
-  card.addEventListener('click', () => selectSpeechDate(date));
-  card.addEventListener('keydown', event => {
-    if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault();
-      selectSpeechDate(date);
-    }
-  });
   const meta = document.createElement('div'); meta.className = 'date-meta';
   const time = document.createElement('time'); time.dateTime = date; time.textContent = date.replaceAll('-', '/');
   const weekday = document.createElement('span'); weekday.className = 'weekday'; weekday.textContent = events[0].weekday || '';
@@ -951,239 +928,6 @@ function eventDisplayColor(event, category) {
   return categoryDisplayColor(category);
 }
 
-function supportsSpeech() {
-  return 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window;
-}
-
-function selectSpeechDate(date, shouldScroll = false) {
-  state.speechDate = date;
-  document.querySelectorAll('.date-card').forEach(card => {
-    card.classList.toggle('speech-selected', card.dataset.date === date);
-  });
-  const card = [...document.querySelectorAll('.date-card')].find(item => item.dataset.date === date);
-  if (shouldScroll) card?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  elements.speechStatus.textContent = `朗讀起點：${date.replaceAll('-', '/')}。`;
-}
-
-function orderedSpeechDates() {
-  return [...new Set(getVisibleEvents().map(event => event.date))].sort();
-}
-
-function moveSpeechDate(offset) {
-  stopSpeech(false);
-  const dates = orderedSpeechDates();
-  if (!dates.length) {
-    elements.speechStatus.textContent = '目前沒有可朗讀的活動。';
-    return;
-  }
-  const current = state.speechDate && dates.includes(state.speechDate)
-    ? dates.indexOf(state.speechDate) : 0;
-  const next = Math.min(Math.max(current + offset, 0), dates.length - 1);
-  selectSpeechDate(dates[next], true);
-}
-
-function speechEventId(event) {
-  return String(event.id || event.event_id || `${event.date}-${event.order}-${event.name}`);
-}
-
-function buildSpeechQueue() {
-  const visible = getVisibleEvents();
-  const grouped = groupByDate(visible);
-  const dates = [...grouped.keys()].sort();
-  if (!dates.length) return [];
-  let start = state.speechDate && dates.includes(state.speechDate)
-    ? dates.indexOf(state.speechDate) : 0;
-  state.speechDate = dates[start];
-  const queue = [];
-  let previousYear = null;
-  dates.slice(start).forEach(date => {
-    const [year, month, day] = date.split('-').map(Number);
-    const dateText = previousYear === year
-      ? `${month}月${day}日`
-      : `${year}年${month}月${day}日`;
-    queue.push({ type: 'date', date, text: dateText });
-    previousYear = year;
-    const events = [...grouped.get(date)].sort((a, b) => {
-      const side = Number(isCoreEvent(a)) - Number(isCoreEvent(b));
-      return side ? -side : a.order - b.order;
-    });
-    events.forEach(event => queue.push({
-      type: 'event', date, eventId: speechEventId(event), text: String(event.name || '')
-    }));
-  });
-  return queue;
-}
-
-function prepareSpeechText(value) {
-  let text = String(value || '');
-
-  // 括號內的跨月日期區間讀成完整月日，例如：
-  // (10/31-11/1) →（10月31日至11月1日）
-  // 同時容許全形括號、全形斜線，以及意外輸入的雙斜線。
-  text = text.replace(
-    /([（(])\s*(\d{1,2})\s*[/／]{1,2}\s*(\d{1,2})\s*[-－–—]\s*(\d{1,2})\s*[/／]{1,2}\s*(\d{1,2})\s*([）)])/g,
-    '$1$2月$3日至$4月$5日$6'
-  );
-
-  // 活動名稱結尾的同月份簡寫日期區間：
-  // (4/3-5) →（4月3日至5日）、(10/9-11) →（10月9日至11日）。
-  // 跨月的 (10/31-11/1) 已由前一條規則優先處理。
-  text = text.replace(
-    /([（(])\s*(\d{1,2})\s*[/／]{1,2}\s*(\d{1,2})\s*[-－–—]\s*(\d{1,2})\s*([）)])(?=\s*$)/g,
-    '$1$2月$3日至$4日$5'
-  );
-  // 活動名稱結尾的括號純數字區間代表日期：
-  // (7-8) →（7至8日）、(14-15) →（14至15日）。
-  // 只處理文字結尾，因此不會影響 (9:00-17:00) 等時間區間。
-  text = text.replace(
-    /([（(])\s*(\d{1,2})\s*[-－–—]\s*(\d{1,2})\s*([）)])(?=\s*$)/g,
-    '$1$2至$3日$4'
-  );
-  // 普遍朗讀規則：數字與數字之間的連字號讀作「至」。
-  // 使用前瞻保留後一個數字，因此 1-2-3 也能依序讀成 1至2至3。
-  text = text.replace(/(\d)\s*[-－–—]\s*(?=\d)/g, '$1至');
-
-  // 教育階段與年級之間的連字號代表範圍，應讀作「至」：
-  // 幼大班-國小三 → 幼大班至國小三；國小四-六 → 國小四至六。
-  // 此規則須先於一般的「中文字-數字讀作之」規則。
-  text = text.replace(
-    /((?:幼[小中大]班|國小[一二三四五六七八九十\\d]*|國中[一二三\\d]*|高中[一二三\\d]*))\\s*[-－–—]\\s*((?:(?:幼[小中大]班|國小|國中|高中))?[一二三四五六七八九十\\d]+)/g,
-    '$1至$2'
-  );
-  // 中文字後面的連字號讀作「之」，例如「第15期-49」。
-  text = text.replace(/([\u3400-\u9fff])\s*[-－–—]\s*/gu, '$1之');
-
-  // 瀏覽器常把「連假」的「假」誤讀為第三聲；語音層改用同音字強制第四聲。
-  text = text.replace(/連假/g, '連駕');
-
-  return text;
-}
-
-function preferredVoice() {
-  const voices = window.speechSynthesis.getVoices();
-  return voices.find(voice => /^zh[-_]TW/i.test(voice.lang)) ||
-    voices.find(voice => /^zh/i.test(voice.lang)) || null;
-}
-
-function clearSpeechHighlight() {
-  document.querySelectorAll('.speech-active').forEach(item => item.classList.remove('speech-active'));
-}
-
-function highlightSpeechItem(item) {
-  clearSpeechHighlight();
-  selectSpeechDate(item.date, false);
-  const card = [...document.querySelectorAll('.date-card')].find(node => node.dataset.date === item.date);
-  const target = item.type === 'date'
-    ? card?.querySelector('.date-meta')
-    : [...(card?.querySelectorAll('.event') || [])].find(node => node.dataset.eventId === item.eventId);
-  target?.classList.add('speech-active');
-  target?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-}
-
-function updateSpeechButtons() {
-  const playLabel = speechState.playing ? '重新播放' : '播放';
-  const pauseLabel = speechState.paused ? '繼續' : '暫停';
-  [elements.speechPlay, elements.floatingSpeechPlay].forEach(button => {
-    if (!button) return;
-    button.textContent = '▶';
-    button.setAttribute('aria-label', playLabel);
-    button.title = playLabel;
-  });
-  [elements.speechPause, elements.floatingSpeechPause].forEach(button => {
-    if (!button) return;
-    button.disabled = !speechState.playing;
-    button.textContent = 'Ⅱ';
-    button.setAttribute('aria-label', pauseLabel);
-    button.title = pauseLabel;
-  });
-  [elements.speechStop, elements.floatingSpeechStop].forEach(button => {
-    if (!button) return;
-    button.disabled = !speechState.playing;
-  });
-  if (elements.floatingSpeechControls) {
-    elements.floatingSpeechControls.hidden = !speechState.playing;
-  }
-}
-
-function speakNext() {
-  if (!speechState.playing || speechState.paused) return;
-  if (speechState.index >= speechState.queue.length) {
-    speechState.playing = false;
-    speechState.paused = false;
-    clearSpeechHighlight();
-    elements.speechStatus.textContent = '朗讀完成。';
-    updateSpeechButtons();
-    return;
-  }
-  const item = speechState.queue[speechState.index];
-  highlightSpeechItem(item);
-  elements.speechStatus.textContent = item.type === 'date'
-    ? `正在朗讀日期：${item.text}`
-    : `正在朗讀：${item.text}`;
-  const utterance = new SpeechSynthesisUtterance(prepareSpeechText(item.text));
-  utterance.lang = 'zh-TW';
-  utterance.rate = 0.9;
-  utterance.pitch = 1;
-  const voice = preferredVoice();
-  if (voice) utterance.voice = voice;
-  utterance.onend = () => {
-    if (!speechState.playing) return;
-    speechState.index += 1;
-    speakNext();
-  };
-  utterance.onerror = event => {
-    if (event.error === 'canceled' || event.error === 'interrupted') return;
-    stopSpeech(false);
-    elements.speechStatus.textContent = '瀏覽器語音暫時無法朗讀，請按播放鍵重試。';
-  };
-  window.speechSynthesis.speak(utterance);
-}
-
-function startSpeech() {
-  if (!supportsSpeech()) {
-    elements.speechStatus.textContent = '此瀏覽器不支援語音朗讀，請改用最新版 Chrome、Edge 或 Safari。';
-    return;
-  }
-  window.speechSynthesis.cancel();
-  speechState.queue = buildSpeechQueue();
-  speechState.index = 0;
-  speechState.paused = false;
-  speechState.playing = speechState.queue.length > 0;
-  if (!speechState.playing) {
-    elements.speechStatus.textContent = '目前已勾選的分類與搜尋條件中沒有可朗讀的活動。';
-    updateSpeechButtons();
-    return;
-  }
-  selectSpeechDate(speechState.queue[0].date);
-  updateSpeechButtons();
-  setTimeout(speakNext, 80);
-}
-
-function toggleSpeechPause() {
-  if (!speechState.playing) return;
-  if (speechState.paused) {
-    speechState.paused = false;
-    window.speechSynthesis.resume();
-    elements.speechStatus.textContent = '繼續朗讀。';
-  } else {
-    speechState.paused = true;
-    window.speechSynthesis.pause();
-    elements.speechStatus.textContent = '朗讀已暫停。';
-  }
-  updateSpeechButtons();
-}
-
-function stopSpeech(showMessage = true) {
-  if (supportsSpeech()) window.speechSynthesis.cancel();
-  speechState.playing = false;
-  speechState.paused = false;
-  speechState.queue = [];
-  speechState.index = 0;
-  clearSpeechHighlight();
-  if (showMessage && elements.speechStatus) elements.speechStatus.textContent = '朗讀已停止。';
-  if (elements.speechPlay) updateSpeechButtons();
-}
-
 function emptyMessage() {
   const div = document.createElement('div'); div.className = 'empty';
   div.textContent = state.selected.size ? '本月在目前選擇的分類中沒有活動。' : '請先選擇至少一個行事曆分類。';
@@ -1276,15 +1020,6 @@ elements.filterScrollLeft?.addEventListener('click', () => scrollFilters(-1));
 elements.filterScrollRight?.addEventListener('click', () => scrollFilters(1));
 elements.filters.addEventListener('scroll', updateFilterScrollGuide, { passive: true });
 window.addEventListener('resize', updateFilterScrollGuide);
-document.querySelector('#speechPlay').addEventListener('click', startSpeech);
-document.querySelector('#speechPause').addEventListener('click', toggleSpeechPause);
-document.querySelector('#speechStop').addEventListener('click', () => stopSpeech(true));
-elements.floatingSpeechPlay?.addEventListener('click', startSpeech);
-elements.floatingSpeechPause?.addEventListener('click', toggleSpeechPause);
-elements.floatingSpeechStop?.addEventListener('click', () => stopSpeech(true));
-window.addEventListener('beforeunload', () => {
-  stopSpeech(false);
-});
 document.querySelector('#previousMonth').addEventListener('click', () => changeMonth(-1));
 document.querySelector('#nextMonth').addEventListener('click', () => changeMonth(1));
 document.querySelector('#refreshButton').addEventListener('click', async () => {
