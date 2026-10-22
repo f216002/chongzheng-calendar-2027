@@ -127,6 +127,8 @@ footer a { color: var(--brand); text-underline-offset: .18em; }
   .week { text-align: right; }
   .event-columns { grid-template-columns: 1fr; }
   .event-column + .event-column { border-left: 0; border-top: 2px solid #d6e0e6; }
+  /* 手機版：單日任一半有行程時，空白的另一半整欄隱藏，不顯示「本日無活動」（Cheng 2026-10-22）。 */
+  .event-column.column-empty { display: none; }
   .event-column-title { position: sticky; top: 0; z-index: 1; }
 }
 
