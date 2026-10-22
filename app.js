@@ -50,7 +50,8 @@ const state = {
   categories: [], events: [], selected: new Set(), month: null,
   activeRegion: 'taiwan', hasRendered: false,
   privateEvents: [],
-  pendingScrollDate: null
+  pendingScrollDate: null,
+  daysMap: new Map()
 };
 const elements = {
   filters: document.querySelector('#filters'), calendar: document.querySelector('#calendar'),
@@ -169,6 +170,7 @@ function refreshPublicCalendarData() {
 function applyCalendarData(payload, preserveView = false) {
   state.categories = [...payload.categories].map(normalizeCategory).sort((a, b) => a.order - b.order);
   state.events = payload.events.map(normalizeEvent).filter(event => event.date);
+  state.daysMap = new Map((payload.days || []).map(day => [day.date, day]));
   if (!preserveView) {
     state.selected = new Set(state.categories.filter(item => item.defaultSelected).map(item => item.code));
     state.selected.add(PRIVATE_CALENDAR_CODE);
@@ -801,8 +803,14 @@ function renderCalendar() {
   document.querySelector('#nextMonth').disabled = searching;
   const visible = getVisibleEvents();
   const grouped = Map.groupBy ? Map.groupBy(visible, event => event.date) : groupByDate(visible);
-  const cards = [...grouped.entries()].sort(([a], [b]) => a.localeCompare(b))
-    .map(([date, events]) => createDateCard(date, events));
+  let cards;
+  if (!searching && state.selected.size) {
+    /* 月份檢視補齊當月每一天：無活動的日期也顯示日期卡（Cheng 2026-10-22）。 */
+    cards = datesOfMonth(state.month).map(date => createDateCard(date, grouped.get(date) || []));
+  } else {
+    cards = [...grouped.entries()].sort(([a], [b]) => a.localeCompare(b))
+      .map(([date, events]) => createDateCard(date, events));
+  }
   elements.calendar.replaceChildren(...(cards.length ? cards : [emptyMessage()]));
   elements.status.hidden = true;
   if (state.pendingScrollDate) {
@@ -819,15 +827,39 @@ function groupByDate(events) {
   return map;
 }
 
+function datesOfMonth(monthKey) {
+  const [year, month] = monthKey.split('-').map(Number);
+  const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  const dates = [];
+  for (let day = 1; day <= lastDay; day += 1) {
+    dates.push(`${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`);
+  }
+  return dates;
+}
+
+function weekdayName(isoDate) {
+  const names = ['週日', '週一', '週二', '週三', '週四', '週五', '週六'];
+  const [year, month, day] = isoDate.split('-').map(Number);
+  return names[new Date(Date.UTC(year, month - 1, day)).getUTCDay()];
+}
+
 function createDateCard(date, events) {
   const card = document.createElement('article'); card.className = 'date-card';
   card.dataset.date = date;
   const meta = document.createElement('div'); meta.className = 'date-meta';
   const time = document.createElement('time'); time.dateTime = date; time.textContent = date.replaceAll('-', '/');
-  const weekday = document.createElement('span'); weekday.className = 'weekday'; weekday.textContent = events[0].weekday || '';
-  const lunar = document.createElement('div'); lunar.className = 'lunar'; lunar.textContent = `農曆 ${events[0].lunar || '—'}`;
-  const week = document.createElement('div'); week.className = 'week'; week.textContent = events[0].week || '';
+  const dayInfo = events[0] || state.daysMap.get(date) || {};
+  const weekday = document.createElement('span'); weekday.className = 'weekday'; weekday.textContent = dayInfo.weekday || weekdayName(date);
+  const lunar = document.createElement('div'); lunar.className = 'lunar'; lunar.textContent = `農曆 ${dayInfo.lunar || '—'}`;
+  const week = document.createElement('div'); week.className = 'week'; week.textContent = dayInfo.week || '';
   meta.append(time, weekday, lunar, week);
+
+  if (!events.length) {
+    const empty = document.createElement('div'); empty.className = 'day-empty';
+    empty.textContent = '此日無行程';
+    card.append(meta, empty);
+    return card;
+  }
 
   const columns = document.createElement('div'); columns.className = 'event-columns';
   const core = createEventColumn('共同核心活動', 'core-events');
