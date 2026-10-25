@@ -813,13 +813,31 @@ function renderCalendar() {
   }
   elements.calendar.replaceChildren(...(cards.length ? cards : [emptyMessage()]));
   elements.status.hidden = true;
+  sizeCalendarRegion();
   if (state.pendingScrollDate) {
+    /* 開啟預設今天（Cheng 2026-10-26）：先把整頁捲到月份欄貼頂（月份為分界線），
+       再把卡片區塊內捲到今天的卡；資料兩次載入不再洗掉位置，因定位只在 pending 時執行一次。 */
     const targetDate = state.pendingScrollDate;
     state.pendingScrollDate = null;
     const target = cards.find(card => card.dataset.date >= targetDate) || cards[cards.length - 1];
-    if (target) requestAnimationFrame(() => target.scrollIntoView({ block: 'start' }));
+    if (target) requestAnimationFrame(() => {
+      const toolbar = document.querySelector('.calendar-toolbar');
+      if (toolbar) window.scrollTo({ top: toolbar.getBoundingClientRect().top + window.scrollY, behavior: 'auto' });
+      requestAnimationFrame(() => {
+        const region = elements.calendar.getBoundingClientRect();
+        elements.calendar.scrollTop += target.getBoundingClientRect().top - region.top;
+      });
+    });
   }
 }
+
+/* 行事曆卡獨立區塊高度：視窗高度扣掉月份欄高度與欄下間距（Cheng 2026-10-26）。 */
+function sizeCalendarRegion() {
+  const toolbar = document.querySelector('.calendar-toolbar');
+  if (!toolbar || !elements.calendar) return;
+  elements.calendar.style.height = `${Math.max(240, window.innerHeight - toolbar.offsetHeight - 16)}px`;
+}
+window.addEventListener('resize', sizeCalendarRegion);
 
 function groupByDate(events) {
   const map = new Map();
@@ -991,6 +1009,7 @@ function changeMonth(offset) {
   const next = new Date(Date.UTC(year, month - 1 + offset, 1));
   state.month = `${next.getUTCFullYear()}-${String(next.getUTCMonth() + 1).padStart(2, '0')}`;
   renderCalendar();
+  elements.calendar.scrollTop = 0; /* 切換月份從該月 1 號看起 */
 }
 
 function updateRegionSelection(select) {
