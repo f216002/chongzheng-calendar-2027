@@ -51,6 +51,8 @@ const state = {
   activeRegion: 'taiwan', hasRendered: false,
   privateEvents: [],
   pendingScrollDate: null,
+  initialScrollDate: null,
+  initialScrollMonth: null,
   daysMap: new Map()
 };
 const elements = {
@@ -186,6 +188,8 @@ function applyCalendarData(payload, preserveView = false) {
        繪製後把今天（或今天之後最近）的日期卡捲到最上方，前後日期仍可滑動查看。 */
     state.month = todayMonth < firstMonth ? firstMonth : (todayMonth > lastMonth ? lastMonth : todayMonth);
     state.pendingScrollDate = todayIso;
+    state.initialScrollDate = todayIso;
+    state.initialScrollMonth = state.month;
   }
   state.hasRendered = true;
   renderRegionTabs();
@@ -516,10 +520,12 @@ async function loadPrivateEventsFromFirestore() {
       renderFilters();
       renderCalendar();
     }
+    finalizeInitialScroll();
     startReminderTimer();
   } catch (error) {
     console.error('讀取私人行程失敗：', error);
     privateLoadedForUid = '';
+    finalizeInitialScroll();
   }
 }
 
@@ -817,18 +823,38 @@ function renderCalendar() {
   if (state.pendingScrollDate) {
     /* 開啟預設今天（Cheng 2026-10-26）：先把整頁捲到月份欄貼頂（月份為分界線），
        再把卡片區塊內捲到今天的卡；資料兩次載入不再洗掉位置，因定位只在 pending 時執行一次。 */
-    const targetDate = state.pendingScrollDate;
     state.pendingScrollDate = null;
-    const target = cards.find(card => card.dataset.date >= targetDate) || cards[cards.length - 1];
-    if (target) requestAnimationFrame(() => {
-      const toolbar = document.querySelector('.calendar-toolbar');
-      if (toolbar) window.scrollTo({ top: toolbar.getBoundingClientRect().top + window.scrollY, behavior: 'auto' });
-      requestAnimationFrame(() => {
-        const region = elements.calendar.getBoundingClientRect();
-        elements.calendar.scrollTop += target.getBoundingClientRect().top - region.top;
-      });
-    });
+    scrollToTodayCard();
   }
+}
+
+/* 登入預設今天（Cheng 2026-10-26）：整頁捲到月份欄貼頂＋卡片區塊內捲到今天的卡。
+   私人行程是非同步載入、會改變今天之前卡片的高度，第一次定位可能被位移洗掉，
+   因此在私人行程結算（成功或失敗）後、且使用者尚未切換月份或搜尋時，再確認一次。 */
+let initialScrollFinalized = false;
+function scrollToTodayCard() {
+  const targetDate = state.initialScrollDate || (() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  })();
+  const cards = [...elements.calendar.querySelectorAll('.date-card')];
+  const target = cards.find(card => card.dataset.date >= targetDate) || cards[cards.length - 1];
+  if (!target) return;
+  requestAnimationFrame(() => {
+    const toolbar = document.querySelector('.calendar-toolbar');
+    if (toolbar) window.scrollTo({ top: toolbar.getBoundingClientRect().top + window.scrollY, behavior: 'auto' });
+    requestAnimationFrame(() => {
+      const region = elements.calendar.getBoundingClientRect();
+      elements.calendar.scrollTop += target.getBoundingClientRect().top - region.top;
+    });
+  });
+}
+function finalizeInitialScroll() {
+  if (initialScrollFinalized || !state.hasRendered) return;
+  if (state.initialScrollMonth && state.month !== state.initialScrollMonth) { initialScrollFinalized = true; return; }
+  if (typeof hasActiveSearch === 'function' && hasActiveSearch()) { initialScrollFinalized = true; return; }
+  initialScrollFinalized = true;
+  scrollToTodayCard();
 }
 
 /* 行事曆卡獨立區塊高度：視窗高度扣掉月份欄高度與欄下間距（Cheng 2026-10-26）。 */
@@ -1008,6 +1034,7 @@ function changeMonth(offset) {
   const [year, month] = state.month.split('-').map(Number);
   const next = new Date(Date.UTC(year, month - 1 + offset, 1));
   state.month = `${next.getUTCFullYear()}-${String(next.getUTCMonth() + 1).padStart(2, '0')}`;
+  initialScrollFinalized = true; /* 使用者已切換月份，不再拉回今天 */
   renderCalendar();
   elements.calendar.scrollTop = 0; /* 切換月份從該月 1 號看起 */
 }
