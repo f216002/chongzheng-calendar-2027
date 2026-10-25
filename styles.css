@@ -63,7 +63,8 @@ main { width: min(1420px, calc(100% - 2rem)); margin: 1.2rem auto 3rem; }
 .filter-chip input:checked + label { color: white; background: var(--chip-color); border-color: var(--chip-color); box-shadow: 0 4px 14px color-mix(in srgb, var(--chip-color), transparent 70%); }
 .filter-chip input:checked + label::before { background: white; box-shadow: none; }
 .filter-chip input:focus-visible + label, .region-tab:focus-visible { outline: 3px solid #8fc8e7; outline-offset: 2px; }
-.calendar-toolbar { display: grid; grid-template-columns: 48px 1fr 48px; align-items: center; text-align: center; gap: 1rem; margin: 1.6rem 0 1rem; }
+/* 月份欄為分界線：滑到螢幕頂端即固定住（Cheng 2026-10-26）；上方間距改用 padding，避免 sticky 被 margin 頂出空隙。 */
+.calendar-toolbar { position: sticky; top: 0; z-index: 10; background: var(--paper); display: grid; grid-template-columns: 48px 1fr 48px; align-items: center; text-align: center; gap: 1rem; margin: 0 0 1rem; padding-top: 1.8rem; }
 .calendar-toolbar h2 { margin: 0; font-size: 1.55rem; }
 .year-label { margin: 0; color: var(--muted); font-size: .86rem; letter-spacing: .12em; }
 .month-button { width: 48px; height: 48px; color: var(--brand); background: white; border-color: var(--line); font-size: 2rem; line-height: 1; }
@@ -72,7 +73,8 @@ main { width: min(1420px, calc(100% - 2rem)); margin: 1.2rem auto 3rem; }
 .status { padding: 2rem; text-align: center; color: var(--muted); }
 .status.error { color: #9d2c25; background: #fff1ef; border-radius: .8rem; }
 .status[hidden] { display: none; }
-.calendar { display: grid; gap: .85rem; }
+/* 行事曆卡獨立捲動區塊：高度由 JS 依月份欄高度量測（Cheng 2026-10-26），區塊內上下滑動不帶動整頁；不設 overscroll 阻斷，滑到區塊頂端可繼續回到上方內容。 */
+.calendar { display: grid; gap: .85rem; overflow-y: auto; -webkit-overflow-scrolling: touch; }
 .date-card { scroll-margin-top: .75rem; display: grid; grid-template-columns: 130px 1fr; overflow: hidden; background: var(--card); border: 1px solid var(--line); border-radius: .9rem; }
 .date-meta { padding: .95rem; background: #edf4f7; border-right: 1px solid var(--line); }
 .date-meta time { display: block; font-size: 1.1rem; font-weight: 800; }
@@ -465,7 +467,7 @@ main {
 
 /* 月份及日期卡片 */
 .calendar-toolbar {
-  margin-top: 1.8rem;
+  margin-top: 0; /* sticky 固定需無上邊距，間距已改由 padding-top 提供 */
 }
 .calendar-toolbar h2 {
   color: #0b5477;
