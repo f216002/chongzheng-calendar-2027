@@ -1622,6 +1622,8 @@ body.gate-open { overflow: hidden; }
 
 /* 私人行程編輯（2026-10-21） */
 .event.private-event { padding-right: 4.4rem; }
+/* 私人行程亮金外框（Cheng 2026-10-26）：2px 亮金邊＋金色光暈，僅私人行程適用。 */
+.event.private-event { border: 2px solid #F0B429; box-shadow: 0 0 0 3px rgba(240, 180, 41, .28), 0 6px 16px rgba(240, 180, 41, .30); }
 .private-event-edit { position: absolute; top: 0.3rem; right: 2.35rem; width: 1.7rem; height: 1.7rem; padding: 0; border: 0; border-radius: 50%; background: transparent; color: #315e78; font-size: 1rem; line-height: 1; cursor: pointer; }
 .private-event-edit:hover { background: rgba(49, 94, 120, 0.12); }
 .private-form-actions .private-delete { margin-right: auto; color: #b3261e; border-color: #e5b4b0; background: #fff; }
