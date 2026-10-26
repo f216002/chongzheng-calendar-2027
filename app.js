@@ -932,6 +932,7 @@ function createEvent(event) {
   const item = document.createElement('div'); item.className = 'event';
   item.dataset.eventId = String(event.id || event.event_id || `${event.date}-${event.order}-${event.name}`);
   item.style.setProperty('--event-color', eventDisplayColor(event, category));
+  if (event.privateLocal) item.style.setProperty('--event-color', '#F0B429'); /* 私人行程改亮金色（Cheng 2026-10-26），與深棕原色區分 */
   const name = document.createElement('p'); name.className = 'event-name'; name.textContent = event.name;
   const categoryName = document.createElement('p'); categoryName.className = 'event-category';
   categoryName.textContent = conciseEventLabel(event, category);
