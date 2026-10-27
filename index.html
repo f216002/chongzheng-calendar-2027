@@ -16,7 +16,7 @@
   <title>寶光崇正2027年度全球行事曆</title>
   <link rel="preconnect" href="https://script.google.com">
   <link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=20261026-4">
+  <link rel="stylesheet" href="styles.css?v=20261027-1">
 </head>
 <body>
   <div id="authGate" class="auth-gate">
@@ -24,6 +24,13 @@
       <h2>寶光崇正2027年度全球行事曆</h2>
       <p class="auth-gate-desc">本網站需以 Google 帳號登入，並經管理員核准後才能使用。登入後，您新增的私人行程只會顯示在您自己的帳號，不會與他人混在一起。</p>
       <button id="calGoogleSignIn" class="cal-signin-button" type="button">使用 Google 帳號登入</button>
+      <form id="calApplyForm" class="cal-apply-form" hidden>
+        <label>姓名<br><input id="calApplyName" type="text" placeholder="求道名" autocomplete="name"></label>
+        <label>單位<br><input id="calApplyUnit" type="text" placeholder="例：中和"></label>
+        <label>區別<br><input id="calApplyDistrict" type="text" placeholder="例：2區"></label>
+        <button id="calApplySubmit" class="cal-signin-button" type="submit">送出申請</button>
+        <p class="cal-apply-note">姓名、單位、區別三格都是必填，管理員審核時用來確認你的身分。</p>
+      </form>
       <p id="calAuthMessage" class="auth-message" aria-live="polite"></p>
       <div id="calSigningIn" class="auth-signing-in" hidden>
         <p>登入中…請稍待</p>
@@ -256,8 +263,8 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script src="cal-auth.js?v=20261021-13"></script>
-  <script src="cal-access.js?v=20261021-12"></script>
-  <script src="cal-admin.js?v=20261021-6"></script>
-  <script src="app.js?v=20261026-4"></script>
+  <script src="cal-access.js?v=20261027-1"></script>
+  <script src="cal-admin.js?v=20261027-1"></script>
+  <script src="app.js?v=20261027-1"></script>
 </body>
 </html>
