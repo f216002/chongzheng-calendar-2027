@@ -1583,6 +1583,13 @@ body.gate-open { overflow: hidden; }
 .auth-gate-card.is-signing-in .auth-gate-hint,
 .auth-gate-card.is-signing-in .cal-gate-signout { display: none; }
 .cal-signin-button[hidden] { display: none; }
+/* 申請表單（2026-10-27 新增，比照三寶讀書會）：姓名／單位／區別三格必填。 */
+.cal-apply-form { text-align: left; margin-top: 0.4rem; }
+.cal-apply-form[hidden] { display: none; }
+.cal-apply-form label { display: block; margin: 10px 0; font-size: 0.94rem; color: #102f47; }
+.cal-apply-form input { width: 100%; box-sizing: border-box; border: 1px solid #d8cdb4; border-radius: 8px; padding: 10px 12px; font: inherit; margin-top: 4px; }
+.cal-apply-form .cal-signin-button { margin-top: 6px; }
+.cal-apply-note { font-size: 0.85rem; color: var(--muted); margin: 0.6rem 0 0; line-height: 1.6; }
 .auth-message { min-height: 1.5em; margin: 0.9rem 0 0; color: #315e78; font-size: 0.92rem; line-height: 1.6; }
 .auth-message.error { color: #b3261e; }
 .cal-gate-signout { margin-top: 0.6rem; font: inherit; cursor: pointer; padding: 0.45rem 1.1rem; border-radius: 999px; border: 1px solid var(--line); background: #f8fafb; }
