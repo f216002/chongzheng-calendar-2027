@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="description" content="寶光崇正2027年度全球行事曆審核管理">
+  <meta name="theme-color" content="#087f8c">
+  <title>審核管理｜寶光崇正2027年度全球行事曆</title>
+  <link rel="stylesheet" href="styles.css?v=20261027-3">
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-title">
+      <h1>審核管理</h1>
+    </div>
+  </header>
+
+  <main>
+    <p><a href="index.html" class="account-button">← 返回主畫面</a></p>
+    <p id="adminStatus" class="admin-status" aria-live="polite">正在確認登入狀態…</p>
+    <h3 class="admin-section-title">待審核申請</h3>
+    <div id="adminPendingList" class="admin-list"></div>
+    <h3 class="admin-section-title">已核准使用者</h3>
+    <div id="adminApprovedList" class="admin-list"></div>
+    <h3 class="admin-section-title">預先核准名單（依 Email，首次登入即通過）</h3>
+    <div id="adminPreapprovedList" class="admin-list"></div>
+    <h3 class="admin-section-title">私人行程總覽（僅管理員）</h3>
+    <div class="admin-overview-actions">
+      <button id="adminOverviewLoad" class="account-button" type="button">載入總覽</button>
+      <button id="adminExportAll" class="account-button" type="button" disabled>匯出全部（CSV）</button>
+    </div>
+    <p id="adminOverviewStatus" class="admin-status" aria-live="polite"></p>
+    <div id="adminOverviewList" class="admin-overview-list"></div>
+  </main>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="cal-auth.js?v=20261021-13"></script>
+  <script src="cal-access.js?v=20261027-2"></script>
+  <script src="cal-admin.js?v=20261027-3"></script>
+</body>
+</html>
