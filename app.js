@@ -1078,7 +1078,7 @@ document.querySelectorAll('.region-tab').forEach(button => button.addEventListen
 }));
 elements.fontSizeDecrease?.addEventListener('click', () => changeFontLevel(-1));
 elements.fontSizeIncrease?.addEventListener('click', () => changeFontLevel(1));
-elements.calAdminButton?.addEventListener('click', () => window.calOpenAdmin?.());
+elements.calAdminButton?.addEventListener('click', () => { window.location.href = 'admin.html'; });
 elements.calExportMine?.addEventListener('click', () => {
   if (!privateStore.length) {
     window.alert('目前沒有私人行程可匯出。');
