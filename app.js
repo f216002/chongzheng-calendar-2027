@@ -30,11 +30,11 @@ let apiTimeoutTimer = null;
 let publicRefreshCompletion = null;
 const CORE_CODES = new Set(['center_classes', 'shared', 'all_classes']);
 const TAIWAN_CODES = new Set([
-  'center_classes', 'shared', 'all_classes', 'center_routine',
+  'center_classes', 'shared', 'all_classes', 'center_routine', 'shuniu',
   'jingming', 'dade', 'zhengzong', 'huade', 'north', 'tonghua', 'guangxiong', 'guanghui', 'guangsheng'
 ]);
 const GLOBAL_CODES = new Set([
-  'center_classes', 'shared', 'all_classes',
+  'center_classes', 'shared', 'all_classes', 'shuniu',
   'indonesia', 'malaysia_group', 'cambodia'
 ]);
 const GLOBAL_COLUMN_MAP = { O: 'indonesia', P: 'malaysia_group', Q: 'cambodia' };
@@ -68,6 +68,7 @@ const elements = {
   authGate: document.querySelector('#authGate'),
   calGoogleSignIn: document.querySelector('#calGoogleSignIn'),
   calGateSignOut: document.querySelector('#calGateSignOut'),
+  calApplyForm: document.querySelector('#calApplyForm'),
   accountBar: document.querySelector('#accountBar'),
   calAccountPhoto: document.querySelector('#calAccountPhoto'),
   calAccountName: document.querySelector('#calAccountName'),
@@ -697,7 +698,10 @@ function handleAccessChanged() {
   const signedIn = Boolean(user);
   elements.calGoogleSignIn.hidden = signedIn;
   elements.calGateSignOut.hidden = !signedIn;
+  /* 申請表單只在「已登入但尚未申請」時顯示；其他狀態一律隱藏。 */
+  if (elements.calApplyForm) elements.calApplyForm.hidden = access.status !== 'needs-application';
   if (access.status === 'checking') setGateMessage('正在確認登入狀態…');
+  else if (access.status === 'needs-application') setGateMessage('請填寫姓名、單位、區別後送出申請，管理員核准後即可使用本行事曆。');
   else if (access.status === 'pending') setGateMessage(`您好，${user.displayName || user.email}。您的使用申請已送出，待管理員核准後即可使用本行事曆。`);
   else if (access.status === 'rejected') setGateMessage('您的申請未通過核准，請聯繫管理員。');
   else if (access.status === 'suspended') setGateMessage('您的帳號目前暫停使用，請聯繫管理員。');
