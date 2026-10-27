@@ -10,6 +10,7 @@
   var modal = null;
   var pendingList = null;
   var approvedList = null;
+  var preapprovedList = null;
   var statusLine = null;
   var approvedByUid = {};
   var overviewData = null;
@@ -95,6 +96,27 @@
     } catch (error) {
       console.error('載入審核名單失敗：', error);
       statusLine.textContent = '載入失敗，請確認 Firestore 規則已更新後再試。';
+    }
+
+    /* 預先核准名單（2026-10-27 新增）：獨立 try/catch，讀不到時不拖垮上方名單。 */
+    try {
+      var preSnap = await db().collection('cal_emailPreapprovals').get();
+      var preapproved = preSnap.docs.map(function (d) { return Object.assign({ uid: d.id }, d.data()); });
+      preapproved.sort(function (a, b) { return String(a.email || '').localeCompare(String(b.email || '')); });
+      preapprovedList.replaceChildren(...(preapproved.length
+        ? preapproved.map(function (item) {
+            return rowEl(Object.assign({}, item, {
+              displayName: (item.name || item.displayName || '') +
+                (item.active === false ? '（已停用）' : '')
+            }), []);
+          })
+        : [emptyEl('目前沒有預先核准的名單。')]));
+      if (statusLine && !/載入失敗/.test(statusLine.textContent)) {
+        statusLine.textContent += ` · 預核准 ${preapproved.length} 人`;
+      }
+    } catch (preError) {
+      console.error('載入預先核准名單失敗：', preError);
+      if (preapprovedList) preapprovedList.replaceChildren([emptyEl('預先核准名單載入失敗（規則或資料尚未建立）。')]);
     }
   }
 
@@ -322,6 +344,7 @@
     modal = $('adminModal');
     pendingList = $('adminPendingList');
     approvedList = $('adminApprovedList');
+    preapprovedList = $('adminPreapprovedList');
     statusLine = $('adminStatus');
     $('adminClose')?.addEventListener('click', window.calCloseAdmin);
     $('adminOverviewLoad')?.addEventListener('click', loadOverview);
