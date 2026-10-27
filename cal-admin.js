@@ -23,10 +23,16 @@
     var info = document.createElement('div');
     info.className = 'admin-row-info';
     var name = document.createElement('strong');
-    name.textContent = item.displayName || '（未提供姓名）';
+    name.textContent = item.name || item.displayName || '（未提供姓名）';
     var email = document.createElement('span');
     email.textContent = item.email || '';
     info.append(name, email);
+    /* 申請表單欄位（2026-10-27 新增，比照三寶讀書會）：有填才顯示。 */
+    if (item.unit || item.district) {
+      var unitLine = document.createElement('span');
+      unitLine.textContent = '單位：' + (item.unit || '—') + ' · 區別：' + (item.district || '—');
+      info.append(unitLine);
+    }
     var btns = document.createElement('div');
     btns.className = 'admin-row-actions';
     actions.forEach(function (action) {
@@ -99,6 +105,9 @@
         uid: item.uid,
         email: item.email || '',
         displayName: item.displayName || '',
+        name: item.name || '',
+        unit: item.unit || '',
+        district: item.district || '',
         photoURL: item.photoURL || '',
         active: true,
         status: 'approved',
