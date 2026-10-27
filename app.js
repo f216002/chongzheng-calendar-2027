@@ -171,12 +171,22 @@ function refreshPublicCalendarData() {
 }
 
 function applyCalendarData(payload, preserveView = false) {
+  const previousCodes = new Set(state.categories.map(item => item.code));
   state.categories = [...payload.categories].map(normalizeCategory).sort((a, b) => a.order - b.order);
   state.events = payload.events.map(normalizeEvent).filter(event => event.date);
   state.daysMap = new Map((payload.days || []).map(day => [day.date, day]));
   if (!preserveView) {
     state.selected = new Set(state.categories.filter(item => item.defaultSelected).map(item => item.code));
     state.selected.add(PRIVATE_CALENDAR_CODE);
+  } else {
+    /* 保留使用者手動篩選，但「新增的預設分類」要自動加入（2026-10-27 樞紐案教訓：
+       舊快取先繪製、再以 preserveView 套用新資料時，新分類否則永遠不會被勾選；
+       只有全新代碼才加入，使用者先前手動取消的舊分類不受影響）。 */
+    state.categories.forEach(function (category) {
+      if (category.defaultSelected && !previousCodes.has(category.code)) state.selected.add(category.code);
+    });
+  }
+  if (!preserveView) {
     const sortedDates = state.events.map(item => item.date).sort();
     const firstDate = sortedDates[0] || '2027-01-01';
     const lastDate = sortedDates[sortedDates.length - 1] || firstDate;
