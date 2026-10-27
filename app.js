@@ -947,6 +947,7 @@ function createEvent(event) {
   item.dataset.eventId = String(event.id || event.event_id || `${event.date}-${event.order}-${event.name}`);
   item.style.setProperty('--event-color', eventDisplayColor(event, category));
   if (event.privateLocal) item.style.setProperty('--event-color', '#F0B429'); /* 私人行程改亮金色（Cheng 2026-10-26），與深棕原色區分 */
+  if (event.category === 'shuniu') item.classList.add('shuniu-event'); /* 樞紐卡：正紅邊框＋光暈、文字正藍（Cheng 2026-10-27） */
   const name = document.createElement('p'); name.className = 'event-name'; name.textContent = event.name;
   const categoryName = document.createElement('p'); categoryName.className = 'event-category';
   categoryName.textContent = conciseEventLabel(event, category);
