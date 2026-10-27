@@ -79,6 +79,22 @@
       return;
     }
 
+    /* 預先核准（2026-10-27 新增）：管理員依 Email 預先加入的核心成員，
+       首次登入即直接通過，不必送審核；讀不到或非本人資料時視為無預核准，
+       繼續走一般申請流程（讀取被拒是預期內的，靜默處理）。 */
+    try {
+      var preSnap = await withTimeout(db.collection('cal_emailPreapprovals')
+        .doc(String(user.email || '').toLowerCase()).get(), 15000);
+      if (preSnap.exists) {
+        var pre = preSnap.data() || {};
+        if (pre.active === true &&
+            String(pre.email || '').toLowerCase() === String(user.email || '').toLowerCase()) {
+          publishAccess(user, 'approved', false);
+          return;
+        }
+      }
+    } catch (preError) { /* 無預核准，繼續走一般申請流程 */ }
+
     /* 沒有核准記錄：查看申請；尚未申請者顯示申請表單（2026-10-27 新增：
        姓名／單位／區別三格必填，比照三寶讀書會），不自動建立空白申請。 */
     var reqRef = requestDoc(user.uid);
