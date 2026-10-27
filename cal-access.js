@@ -2,7 +2,7 @@
    使用 cal_accessRequests（申請）與 cal_approvedUsers（核准名單），
    與 V4 的 v4_accessRequests / v4_approvedTeachers 完全隔離。
    狀態發布到 window.CAL_ACCESS，並觸發 cal-access-changed 事件。
-   狀態：checking / signed-out / pending / approved / rejected / suspended / error */
+   狀態：checking / signed-out / needs-application / pending / approved / rejected / suspended / error */
 (function () {
   'use strict';
 
@@ -79,24 +79,58 @@
       return;
     }
 
-    /* 沒有核准記錄：查看或建立申請。 */
+    /* 沒有核准記錄：查看申請；尚未申請者顯示申請表單（2026-10-27 新增：
+       姓名／單位／區別三格必填，比照三寶讀書會），不自動建立空白申請。 */
     var reqRef = requestDoc(user.uid);
     var reqSnap = await withTimeout(reqRef.get(), 15000);
-    var status = 'pending';
     if (reqSnap.exists) {
-      status = (reqSnap.data() || {}).status || 'pending';
+      publishAccess(user, (reqSnap.data() || {}).status || 'pending', false);
     } else {
-      await withTimeout(reqRef.set({
-        uid: user.uid,
-        email: user.email || '',
-        displayName: user.displayName || '',
-        photoURL: user.photoURL || '',
-        status: 'pending',
-        requestedAt: window.firebase.firestore.FieldValue.serverTimestamp(),
-        updatedAt: window.firebase.firestore.FieldValue.serverTimestamp()
-      }), 15000);
+      publishAccess(user, 'needs-application', false);
     }
-    publishAccess(user, status, false);
+  }
+
+  /* 申請表單送出（比照三寶讀書會 sanbao-gate.js）：三格皆必填，寫入申請單供後台審核。 */
+  function submitApplication() {
+    var user = auth.currentUser;
+    if (!user) return;
+    var nameEl = document.getElementById('calApplyName');
+    var unitEl = document.getElementById('calApplyUnit');
+    var districtEl = document.getElementById('calApplyDistrict');
+    var submitBtn = document.getElementById('calApplySubmit');
+    var name = nameEl ? nameEl.value.trim() : '';
+    var unit = unitEl ? unitEl.value.trim() : '';
+    var district = districtEl ? districtEl.value.trim() : '';
+    if (!name || !unit || !district) {
+      if (window.calSetAuthMessage) window.calSetAuthMessage('請填寫姓名、單位、區別，三格都是必填。', true);
+      return;
+    }
+    if (submitBtn) submitBtn.disabled = true;
+    withTimeout(requestDoc(user.uid).set({
+      uid: user.uid,
+      email: user.email || '',
+      displayName: user.displayName || '',
+      name: name,
+      unit: unit,
+      district: district,
+      photoURL: user.photoURL || '',
+      status: 'pending',
+      requestedAt: window.firebase.firestore.FieldValue.serverTimestamp(),
+      updatedAt: window.firebase.firestore.FieldValue.serverTimestamp()
+    }), 15000).then(function () {
+      return resolveAccess(user);
+    }).catch(function (error) {
+      console.error('送出申請失敗：', error);
+      if (window.calSetAuthMessage) window.calSetAuthMessage('送出申請失敗，請稍後再試。', true);
+      if (submitBtn) submitBtn.disabled = false;
+    });
+  }
+  var applyForm = document.getElementById('calApplyForm');
+  if (applyForm) {
+    applyForm.addEventListener('submit', function (event) {
+      event.preventDefault();
+      submitApplication();
+    });
   }
 
   window.CAL_ACCESS = Object.freeze({ ready: false, status: 'checking', user: null, isAdmin: false });
