@@ -354,5 +354,22 @@
     document.querySelectorAll('[data-admin-close]').forEach(function (button) {
       button.addEventListener('click', window.calCloseAdmin);
     });
+
+    /* 頁面模式（admin.html，2026-10-27 新增）：頁面上有名單但沒有 modal 時，
+       依登入審核狀態自動載入；非管理員或未登入只顯示提示，不載入名單。
+       index.html 有 modal 時此區塊不執行，modal 行為不變。 */
+    if (!modal && pendingList) {
+      var handlePageAccess = function () {
+        var access = window.CAL_ACCESS;
+        if (!access) return;
+        if (access.status === 'approved' && access.isAdmin) {
+          loadAdminLists();
+        } else if (access.ready) {
+          if (statusLine) statusLine.textContent = '僅管理員可用，請用管理員帳號登入。';
+        }
+      };
+      window.addEventListener('cal-access-changed', handlePageAccess);
+      if (window.CAL_ACCESS) handlePageAccess();
+    }
   });
 })();
