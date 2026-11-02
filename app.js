@@ -405,6 +405,169 @@ function googleTemplateUrl(event) {
   return `https://calendar.google.com/calendar/render?${params.toString()}`;
 }
 
+/* ---------- 管理者專用 Google 日曆 API 匯入（2026-11-02 Cheng 指示，僅管理者帳號） ----------
+   非管理者完全不走這段程式，仍用原本的範本連結；登入流程（cal-auth.js）一律不動。
+   日曆授權只在管理者第一次按匯入時以 reauthenticateWithPopup 額外取得，範圍僅 calendar.events。
+   流程：先查已存的 Google 編號 → 再以名稱＋開始時間搜尋當天 → 都沒有才建立。
+   建立時帶入網站的提醒設定（換算成提前分鐘數）與顏色（私人行程固定 Banana 金黃色，colorId 5；
+   Google 活動顏色只有 11 種固定色，無法用網站的 #F0B429 原色號）。
+   週期與範本連結同規則：只有系列首筆帶 RRULE，且不帶 UNTIL（與現有範本連結行為一致）。 */
+const GCAL_API_BASE = 'https://www.googleapis.com/calendar/v3';
+const GCAL_SCOPE = 'https://www.googleapis.com/auth/calendar.events';
+const GCAL_PRIVATE_COLOR_ID = '5'; /* Banana，最接近網站私人亮金色 */
+let gcalTokenCache = null; /* { token, expiresAt }，只放記憶體，不寫 localStorage */
+
+async function getGcalToken() {
+  if (gcalTokenCache && Date.now() < gcalTokenCache.expiresAt - 60000) return gcalTokenCache.token;
+  const provider = new window.firebase.auth.GoogleAuthProvider();
+  provider.addScope(GCAL_SCOPE);
+  const user = window.firebase.auth().currentUser;
+  if (!user) throw new Error('請先登入。');
+  const result = await user.reauthenticateWithPopup(provider);
+  const token = result && result.credential ? result.credential.accessToken : '';
+  if (!token) throw new Error('未能取得 Google 日曆授權，請再試一次。');
+  gcalTokenCache = { token, expiresAt: Date.now() + 3500 * 1000 };
+  return token;
+}
+
+async function gcalFetch(path, token, options) {
+  const res = await fetch(GCAL_API_BASE + path, {
+    ...(options || {}),
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', ...((options && options.headers) || {}) }
+  });
+  if (!res.ok) {
+    let message = `Google 日曆 API 失敗（${res.status}）`;
+    try { const body = await res.json(); if (body && body.error && body.error.message) message = body.error.message; } catch (error) {}
+    throw new Error(message);
+  }
+  if (res.status === 204) return null;
+  return res.json();
+}
+
+function gcalRfc3339Local(dateObj) {
+  const pad = n => String(n).padStart(2, '0');
+  const off = -dateObj.getTimezoneOffset();
+  const sign = off >= 0 ? '+' : '-';
+  const abs = Math.abs(off);
+  return `${dateObj.getFullYear()}-${pad(dateObj.getMonth() + 1)}-${pad(dateObj.getDate())}T${pad(dateObj.getHours())}:${pad(dateObj.getMinutes())}:${pad(dateObj.getSeconds())}${sign}${pad(Math.floor(abs / 60))}:${pad(abs % 60)}`;
+}
+
+function gcalEventTimes(event) {
+  /* 與範本連結同規則：有開始時間才用 dateTime，否則用整天 */
+  const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  if (!event.startTimeRaw) {
+    return { start: { date: event.date }, end: { date: addDaysIso(event.date, 1) }, allDay: true };
+  }
+  const start = occurrenceStart(event);
+  const endTime = event.endTimeRaw && event.endTimeRaw > event.startTimeRaw
+    ? event.endTimeRaw : addMinutesToTime(event.startTimeRaw, 60);
+  const [eh, em] = endTime.split(':').map(Number);
+  const end = new Date(start); end.setHours(eh, em, 0, 0);
+  return { start: { dateTime: gcalRfc3339Local(start), timeZone }, end: { dateTime: gcalRfc3339Local(end), timeZone }, allDay: false };
+}
+
+function gcalReminderMinutes(event, start) {
+  /* 提醒換算成提前分鐘數；0d9 當天上午 9 點若已過開始時間（例如上午 8 點開始），則以開始當下（0 分鐘）計；
+     整天行程以 occurrenceStart（預設 09:00）為基準換算，屬近似值 */
+  if (!event.reminder || event.reminder === 'none') return null;
+  const remindAt = reminderTimeFor(event, start);
+  if (!remindAt) return null;
+  return Math.max(0, Math.round((start.getTime() - remindAt.getTime()) / 60000));
+}
+
+function gcalBuildBody(event) {
+  const times = gcalEventTimes(event);
+  const start = occurrenceStart(event);
+  const minutes = gcalReminderMinutes(event, start);
+  const body = {
+    summary: event.name,
+    start: times.start,
+    end: times.end,
+    colorId: GCAL_PRIVATE_COLOR_ID
+  };
+  const description = [event.notes, event.meetingLink ? `會議連結：${event.meetingLink}` : ''].filter(Boolean).join('\n');
+  if (description) body.description = description;
+  if (event.location) body.location = event.location;
+  if (event.isSeriesStart && event.recurrence && event.recurrence !== 'none') {
+    const freq = { weekly: 'WEEKLY', monthly: 'MONTHLY', yearly: 'YEARLY' }[event.recurrence];
+    if (freq) body.recurrence = [`RRULE:FREQ=${freq}`];
+  }
+  if (minutes === null) {
+    body.reminders = { useDefault: false, overrides: [] }; /* 不提醒：明確關掉 Google 預設提醒 */
+  } else {
+    body.reminders = { useDefault: false, overrides: [{ method: 'popup', minutes }] };
+  }
+  return body;
+}
+
+async function gcalFindExisting(token, event) {
+  /* 1) 已存編號：直接查該筆（被刪會 404，往下繼續搜尋） */
+  if (event.googleEventId) {
+    try {
+      const found = await gcalFetch(`/calendars/primary/events/${encodeURIComponent(event.googleEventId)}`, token, {});
+      if (found && found.status !== 'cancelled') return found;
+    } catch (error) { /* 視為已刪，繼續搜尋 */ }
+  }
+  /* 2) 以名稱＋開始時間搜尋當天（含週期展開後的實例） */
+  const times = gcalEventTimes(event);
+  const dayStart = new Date(`${event.date}T00:00:00`);
+  const dayEnd = new Date(`${event.date}T23:59:59`);
+  const params = new URLSearchParams({
+    timeMin: gcalRfc3339Local(dayStart), timeMax: gcalRfc3339Local(dayEnd),
+    singleEvents: 'true', orderBy: 'startTime', maxResults: '50'
+  });
+  const list = await gcalFetch(`/calendars/primary/events?${params.toString()}`, token, {});
+  const startKey = times.allDay ? event.date : gcalRfc3339Local(occurrenceStart(event)).slice(0, 16);
+  return (list.items || []).find(item => {
+    if (item.status === 'cancelled' || item.summary !== event.name) return false;
+    if (times.allDay) return item.start && item.start.date === event.date;
+    return item.start && item.start.dateTime && item.start.dateTime.slice(0, 16) === startKey;
+  }) || null;
+}
+
+async function gcalRememberImported(event, googleEventId) {
+  event.googleEventId = googleEventId;
+  const raw = privateStore.find(item => item.id === event.rawId);
+  if (raw) raw.googleEventId = googleEventId;
+  try {
+    const user = window.CAL_ACCESS && window.CAL_ACCESS.user;
+    if (user) {
+      await window.CAL_DB.collection('cal_users').doc(user.uid)
+        .collection('privateEvents').doc(event.rawId)
+        .set({ googleEventId, googleImportedAt: window.firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
+    }
+  } catch (error) { console.error('記錄 Google 編號失敗：', error); }
+}
+
+async function handleGcalImport(event, button) {
+  const originalText = button.textContent;
+  try {
+    button.disabled = true;
+    button.textContent = '匯入中…';
+    const token = await getGcalToken();
+    const existing = await gcalFindExisting(token, event);
+    if (existing) {
+      /* 已在 Google 日曆：記下編號（若尚未記），不重複建立 */
+      await gcalRememberImported(event, existing.id);
+      button.textContent = '✓ 已匯入 Google 日曆';
+      window.alert('這筆行程已經在你的 Google 日曆上，不會重複建立。');
+      return;
+    }
+    const created = await gcalFetch('/calendars/primary/events', token, {
+      method: 'POST', body: JSON.stringify(gcalBuildBody(event))
+    });
+    await gcalRememberImported(event, created.id);
+    button.textContent = '✓ 已匯入 Google 日曆';
+    window.alert('已匯入你的 Google 日曆（含提醒與顏色）。');
+  } catch (error) {
+    console.error('匯入 Google 日曆失敗：', error);
+    window.alert(error && error.message ? error.message : '匯入失敗，請稍後再試。');
+    button.textContent = originalText;
+  } finally {
+    button.disabled = false;
+  }
+}
+
 function normalizePrivateEvent(raw, date) {
   const timeText = raw.startTime && raw.endTime
     ? `${raw.startTime}-${raw.endTime}` : (raw.startTime || raw.endTime || '');
@@ -428,6 +591,7 @@ function normalizePrivateEvent(raw, date) {
     recurrence: raw.recurrence || 'none',
     recurrenceLabel: RECURRENCE_LABELS[raw.recurrence] || '',
     reminder: raw.reminder || 'none',
+    googleEventId: raw.googleEventId || '',
     startTimeRaw: raw.startTime || '',
     endTimeRaw: raw.endTime || '',
     isSeriesStart: date === raw.date
@@ -971,15 +1135,34 @@ function createEvent(event) {
       meeting.addEventListener('click', clickEvent => clickEvent.stopPropagation());
       item.append(meeting);
     }
-    const gcal = document.createElement('a');
-    gcal.className = 'event-gcal';
-    gcal.href = googleTemplateUrl(event);
-    gcal.target = '_blank';
-    gcal.rel = 'noopener noreferrer';
-    gcal.textContent = '＋ Google 日曆';
-    gcal.title = '加入自己的 Google 日曆，由手機發出提醒';
-    gcal.addEventListener('click', clickEvent => clickEvent.stopPropagation());
-    item.append(gcal);
+    if (window.CAL_ACCESS && window.CAL_ACCESS.isAdmin && event.isSeriesStart) {
+      /* 管理者專用 API 匯入（2026-11-02）：非管理者、非系列首筆一律走原本的範本連結，不動任何人既有行為 */
+      const gcal = document.createElement('button');
+      gcal.type = 'button';
+      gcal.className = 'event-gcal';
+      gcal.style.background = 'none';
+      gcal.style.border = 'none';
+      gcal.style.padding = '0';
+      gcal.style.font = 'inherit';
+      gcal.style.cursor = 'pointer';
+      gcal.textContent = event.googleEventId ? '✓ 已匯入 Google 日曆' : '＋ 匯入 Google 日曆';
+      gcal.title = '用 Google 日曆 API 匯入：查重複、帶提醒與顏色（僅管理者）';
+      gcal.addEventListener('click', clickEvent => {
+        clickEvent.stopPropagation();
+        handleGcalImport(event, gcal);
+      });
+      item.append(gcal);
+    } else {
+      const gcal = document.createElement('a');
+      gcal.className = 'event-gcal';
+      gcal.href = googleTemplateUrl(event);
+      gcal.target = '_blank';
+      gcal.rel = 'noopener noreferrer';
+      gcal.textContent = '＋ Google 日曆';
+      gcal.title = '加入自己的 Google 日曆，由手機發出提醒';
+      gcal.addEventListener('click', clickEvent => clickEvent.stopPropagation());
+      item.append(gcal);
+    }
     if (event.notes) {
       const notes = document.createElement('p'); notes.className = 'event-notes';
       notes.textContent = event.notes;
