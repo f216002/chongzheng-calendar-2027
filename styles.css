@@ -1630,13 +1630,13 @@ body.gate-open { overflow: hidden; }
 /* 私人行程編輯（2026-10-21） */
 .event.private-event { padding-right: 4.4rem; }
 /* 私人行程亮金外框（Cheng 2026-10-26）：2px 亮金邊＋金色光暈，僅私人行程適用。 */
-.event.private-event { border: 2px solid #F0B429; box-shadow: 0 0 0 3px rgba(240, 180, 41, .28), 0 6px 16px rgba(240, 180, 41, .30); }
+.event.private-event { border: 2px solid #EAD98C; box-shadow: 0 0 0 3px rgba(234, 217, 140, .28), 0 6px 16px rgba(234, 217, 140, .30); } /* 私人行程改淡白黃（Cheng 2026-11-06），亮金讓給今天的日期欄 */
 /* 樞紐卡（2026-10-27 Cheng 指定）：比照私人亮金邊做法，正紅邊框＋紅色光暈，標題與標籤文字深藍。 */
 .event.shuniu-event { border: 2px solid #FF0000; box-shadow: 0 0 0 3px rgba(255, 0, 0, .28), 0 6px 16px rgba(255, 0, 0, .30); }
-/* 今天的日期卡：亮黃邊框＋光暈＋日期欄淡黃底（Cheng 2026-11-06：打開一眼認出今天是幾月幾號）。
-   不用私人亮金 #F0B429，避免與私人行程卡混淆；亮黃 #FFC107 與金色不同，醒目且不撞色。 */
-.date-card.is-today { border: 3px solid #FFC107; box-shadow: 0 0 0 3px rgba(255, 193, 7, .35), 0 8px 20px rgba(255, 193, 7, .35); }
-.date-card.is-today .date-meta { background: #FFF7D6; }
+/* 今天的日期欄：金黃底（Cheng 2026-11-06：金黃只用在最上面日期那排，下面的行程卡不框）。
+   私人行程已改淡白黃 #EAD98C，亮金 #F0B429 讓給今天，不會撞色；整張卡不加邊框。 */
+.date-card.is-today .date-meta { background: #F0B429; }
+.date-card.is-today .lunar, .date-card.is-today .week { color: #5C430A; } /* 農曆／週次在金底上改深棕，保證看得清楚 */
 .event.shuniu-event .event-name { color: #00008B; }
 .event.shuniu-event .event-category { color: #00008B; }
 .private-event-edit { position: absolute; top: 0.3rem; right: 2.35rem; width: 1.7rem; height: 1.7rem; padding: 0; border: 0; border-radius: 50%; background: transparent; color: #315e78; font-size: 1rem; line-height: 1; cursor: pointer; }
