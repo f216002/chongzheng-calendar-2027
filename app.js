@@ -1065,9 +1065,16 @@ function weekdayName(isoDate) {
   return names[new Date(Date.UTC(year, month - 1, day)).getUTCDay()];
 }
 
+/* 今天的 ISO 日期（瀏覽器本地時區，與捲到今天的邏輯一致）。 */
+function localTodayIso() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+}
+
 function createDateCard(date, events) {
   const card = document.createElement('article'); card.className = 'date-card';
   card.dataset.date = date;
+  if (date === localTodayIso()) card.classList.add('is-today'); /* 今天的日期卡加亮框（Cheng 2026-11-06） */
   const meta = document.createElement('div'); meta.className = 'date-meta';
   const time = document.createElement('time'); time.dateTime = date; time.textContent = date.replaceAll('-', '/');
   const dayInfo = events[0] || state.daysMap.get(date) || {};
