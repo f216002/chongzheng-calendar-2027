@@ -410,7 +410,7 @@ function googleTemplateUrl(event) {
    日曆授權只在管理者第一次按匯入時以 reauthenticateWithPopup 額外取得，範圍僅 calendar.events。
    流程：先查已存的 Google 編號 → 再以名稱＋開始時間搜尋當天 → 都沒有才建立。
    建立時帶入網站的提醒設定（換算成提前分鐘數）與顏色（私人行程固定 Banana 金黃色，colorId 5；
-   Google 活動顏色只有 11 種固定色，無法用網站的 #F0B429 原色號）。
+   Google 活動顏色只有 11 種固定色，無法用網站的淡白黃原色號）。
    週期與範本連結同規則：只有系列首筆帶 RRULE，且不帶 UNTIL（與現有範本連結行為一致）。 */
 const GCAL_API_BASE = 'https://www.googleapis.com/calendar/v3';
 const GCAL_SCOPE = 'https://www.googleapis.com/auth/calendar.events';
@@ -1074,7 +1074,7 @@ function localTodayIso() {
 function createDateCard(date, events) {
   const card = document.createElement('article'); card.className = 'date-card';
   card.dataset.date = date;
-  if (date === localTodayIso()) card.classList.add('is-today'); /* 今天的日期卡加亮框（Cheng 2026-11-06） */
+  if (date === localTodayIso()) card.classList.add('is-today'); /* 今天的日期欄加金底（Cheng 2026-11-06），整張卡不加框 */
   const meta = document.createElement('div'); meta.className = 'date-meta';
   const time = document.createElement('time'); time.dateTime = date; time.textContent = date.replaceAll('-', '/');
   const dayInfo = events[0] || state.daysMap.get(date) || {};
@@ -1117,7 +1117,7 @@ function createEvent(event) {
   const item = document.createElement('div'); item.className = 'event';
   item.dataset.eventId = String(event.id || event.event_id || `${event.date}-${event.order}-${event.name}`);
   item.style.setProperty('--event-color', eventDisplayColor(event, category));
-  if (event.privateLocal) item.style.setProperty('--event-color', '#F0B429'); /* 私人行程改亮金色（Cheng 2026-10-26），與深棕原色區分 */
+  if (event.privateLocal) item.style.setProperty('--event-color', '#EAD98C'); /* 私人行程改淡白黃（Cheng 2026-11-06：亮金讓給今天的日期欄） */
   if (event.category === 'shuniu') item.classList.add('shuniu-event'); /* 樞紐卡：正紅邊框＋光暈、文字正藍（Cheng 2026-10-27） */
   const name = document.createElement('p'); name.className = 'event-name'; name.textContent = event.name;
   const categoryName = document.createElement('p'); categoryName.className = 'event-category';
