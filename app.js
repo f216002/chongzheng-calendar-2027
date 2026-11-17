@@ -57,6 +57,7 @@ const state = {
 };
 const elements = {
   filters: document.querySelector('#filters'), calendar: document.querySelector('#calendar'),
+  backToTop: document.querySelector('#backToTop'),
   status: document.querySelector('#status'), monthLabel: document.querySelector('#monthLabel'),
   yearLabel: document.querySelector('#yearLabel'), regionDescription: document.querySelector('#regionDescription'),
   filterScrollGuide: document.querySelector('#filterScrollGuide'),
@@ -1000,39 +1001,103 @@ function renderCalendar() {
   sizeCalendarRegion();
   if (state.pendingScrollDate) {
     /* 開啟預設今天（Cheng 2026-10-26）：先把整頁捲到月份欄貼頂（月份為分界線），
-       再把卡片區塊內捲到今天的卡；資料兩次載入不再洗掉位置，因定位只在 pending 時執行一次。 */
+       再把卡片區塊內捲到今天的卡；資料兩次載入不再洗掉位置，因定位只在 pending 時執行一次，
+       之後由 scheduleInitialScrollVerification 在版面穩定後再檢查（2026-11-18 手機加固）。 */
     state.pendingScrollDate = null;
     scrollToTodayCard();
+    scheduleInitialScrollVerification();
   }
+  updateBackToTopVisibility();
 }
 
 /* 登入預設今天（Cheng 2026-10-26）：整頁捲到月份欄貼頂＋卡片區塊內捲到今天的卡。
    私人行程是非同步載入、會改變今天之前卡片的高度，第一次定位可能被位移洗掉，
-   因此在私人行程結算（成功或失敗）後、且使用者尚未切換月份或搜尋時，再確認一次。 */
+   因此在私人行程結算（成功或失敗）後、且使用者尚未切換月份或搜尋時，再確認一次。
+   2026-11-18 加固（Cheng 回報 iPhone 登入後仍停在 1 號，桌機測試一次就成）：
+   手機初次繪製、字體載入、網址列收合都可能讓第一次定位失效（scrollTop 被吃掉），
+   因此版面穩定後再檢查今天卡是否真的在區塊頂端，沒到就重捲，最多檢查 3 次；
+   使用者一旦自己滑動、切換月份或搜尋，就不再拉回今天。 */
 let initialScrollFinalized = false;
-function scrollToTodayCard() {
-  const targetDate = state.initialScrollDate || (() => {
-    const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-  })();
+let initialScrollVerifyTimer = null;
+let initialScrollVerifyStep = 0;
+let initialScrollUserTookOver = false;
+const INITIAL_SCROLL_VERIFY_DELAYS = [600, 1500, 3000]; /* ms */
+
+function findTodayCard() {
+  const targetDate = state.initialScrollDate || localTodayIso();
   const cards = [...elements.calendar.querySelectorAll('.date-card')];
-  const target = cards.find(card => card.dataset.date >= targetDate) || cards[cards.length - 1];
+  return cards.find(card => card.dataset.date >= targetDate) || cards[cards.length - 1] || null;
+}
+
+function isTodayCardAtTop() {
+  const target = findTodayCard();
+  if (!target) return true;
+  const region = elements.calendar.getBoundingClientRect();
+  return Math.abs(target.getBoundingClientRect().top - region.top) < 8;
+}
+
+function scrollToTodayCard() {
+  const target = findTodayCard();
   if (!target) return;
   requestAnimationFrame(() => {
     const toolbar = document.querySelector('.calendar-toolbar');
     if (toolbar) window.scrollTo({ top: toolbar.getBoundingClientRect().top + window.scrollY, behavior: 'auto' });
-    requestAnimationFrame(() => {
-      const region = elements.calendar.getBoundingClientRect();
-      elements.calendar.scrollTop += target.getBoundingClientRect().top - region.top;
-    });
+    const region = elements.calendar.getBoundingClientRect();
+    elements.calendar.scrollTop += target.getBoundingClientRect().top - region.top;
   });
 }
+
+/* 版面穩定後再確認今天卡的位置：沒到頂就重捲，直到到了或次數用完；
+   使用者接手（滑動／切月／搜尋）就停。由首次定位與私人行程結算後各觸發一次，
+   同一時間只跑一條檢查鏈。 */
+function scheduleInitialScrollVerification() {
+  if (initialScrollVerifyTimer !== null || initialScrollUserTookOver) return;
+  initialScrollVerifyStep = 0;
+  const runStep = () => {
+    initialScrollVerifyTimer = null;
+    if (initialScrollUserTookOver) return;
+    if (state.initialScrollMonth && state.month !== state.initialScrollMonth) return;
+    if (typeof hasActiveSearch === 'function' && hasActiveSearch()) return;
+    if (isTodayCardAtTop()) return;
+    scrollToTodayCard();
+    initialScrollVerifyStep += 1;
+    if (initialScrollVerifyStep < INITIAL_SCROLL_VERIFY_DELAYS.length) {
+      initialScrollVerifyTimer = setTimeout(runStep, INITIAL_SCROLL_VERIFY_DELAYS[initialScrollVerifyStep]);
+    }
+  };
+  initialScrollVerifyTimer = setTimeout(runStep, INITIAL_SCROLL_VERIFY_DELAYS[0]);
+}
+
+function markInitialScrollUserTookOver() {
+  initialScrollUserTookOver = true;
+  if (initialScrollVerifyTimer !== null) {
+    clearTimeout(initialScrollVerifyTimer);
+    initialScrollVerifyTimer = null;
+  }
+}
+
 function finalizeInitialScroll() {
   if (initialScrollFinalized || !state.hasRendered) return;
   if (state.initialScrollMonth && state.month !== state.initialScrollMonth) { initialScrollFinalized = true; return; }
   if (typeof hasActiveSearch === 'function' && hasActiveSearch()) { initialScrollFinalized = true; return; }
   initialScrollFinalized = true;
   scrollToTodayCard();
+  scheduleInitialScrollVerification();
+}
+
+/* 回到頂端懸浮鍵（Cheng 2026-11-18）：行事曆區塊或整頁往下捲逾 300px 才出現，
+   點一下同時把行事曆區塊與整頁平滑捲回最上方；登入閘門開著時不顯示。 */
+function updateBackToTopVisibility() {
+  const button = elements.backToTop;
+  if (!button) return;
+  const inCalendar = elements.calendar ? elements.calendar.scrollTop > 300 : false;
+  const onPage = window.scrollY > 300;
+  button.hidden = document.body.classList.contains('gate-open') || (!inCalendar && !onPage);
+}
+
+function scrollBackToTop() {
+  if (elements.calendar) elements.calendar.scrollTo({ top: 0, behavior: 'smooth' });
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 /* 行事曆卡獨立區塊高度：視窗高度扣掉月份欄高度與欄下間距（Cheng 2026-10-26）。 */
@@ -1241,6 +1306,7 @@ function changeMonth(offset) {
   const next = new Date(Date.UTC(year, month - 1 + offset, 1));
   state.month = `${next.getUTCFullYear()}-${String(next.getUTCMonth() + 1).padStart(2, '0')}`;
   initialScrollFinalized = true; /* 使用者已切換月份，不再拉回今天 */
+  initialScrollUserTookOver = true;
   renderCalendar();
   elements.calendar.scrollTop = 0; /* 切換月份從該月 1 號看起 */
 }
@@ -1323,6 +1389,11 @@ elements.privateDelete?.addEventListener('click', () => {
 elements.filterScrollLeft?.addEventListener('click', () => scrollFilters(-1));
 elements.filterScrollRight?.addEventListener('click', () => scrollFilters(1));
 elements.filters.addEventListener('scroll', updateFilterScrollGuide, { passive: true });
+elements.calendar.addEventListener('scroll', updateBackToTopVisibility, { passive: true });
+window.addEventListener('scroll', updateBackToTopVisibility, { passive: true });
+elements.backToTop?.addEventListener('click', scrollBackToTop);
+elements.calendar.addEventListener('touchstart', markInitialScrollUserTookOver, { passive: true });
+elements.calendar.addEventListener('wheel', markInitialScrollUserTookOver, { passive: true });
 window.addEventListener('resize', updateFilterScrollGuide);
 document.querySelector('#previousMonth').addEventListener('click', () => changeMonth(-1));
 document.querySelector('#nextMonth').addEventListener('click', () => changeMonth(1));
