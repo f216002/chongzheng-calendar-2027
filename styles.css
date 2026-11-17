@@ -78,7 +78,7 @@ main { width: min(1420px, calc(100% - 2rem)); margin: 1.2rem auto 3rem; }
 
 /* 回到頂端懸浮鍵（Cheng 2026-11-18）：行事曆區塊或整頁往下捲逾 300px 才出現，點一下回到最上方；
    浮在內容之上（z-index 1500，低於彈窗 2000 與登入閘門 3000），底部留 iPhone 安全區。
-   2026-11-18 改色：不用站內藍綠（--brand），改陽光橘 #FF7A00、帶 36% 透明，
+   2026-11-18 改色：不用站內藍綠（--brand），改陽光橘 #FF7A00、帶 70% 透明，
    在藍綠白的行事曆上才看得見，又不會完全擋住底下的行程卡。 */
 .back-to-top {
   position: fixed;
@@ -87,7 +87,7 @@ main { width: min(1420px, calc(100% - 2rem)); margin: 1.2rem auto 3rem; }
   z-index: 1500;
   padding: .75rem 1rem;
   color: #fff;
-  background: rgba(255, 122, 0, .64);
+  background: rgba(255, 122, 0, .30);
   border: 0;
   border-radius: 999px;
   box-shadow: 0 8px 24px rgba(7, 47, 71, .28);
