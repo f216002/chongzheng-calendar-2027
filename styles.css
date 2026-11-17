@@ -75,6 +75,27 @@ main { width: min(1420px, calc(100% - 2rem)); margin: 1.2rem auto 3rem; }
 .status[hidden] { display: none; }
 /* 行事曆卡獨立捲動區塊：高度由 JS 依月份欄高度量測（Cheng 2026-10-26），區塊內上下滑動不帶動整頁；不設 overscroll 阻斷，滑到區塊頂端可繼續回到上方內容。2026-10-26 修正：區塊改用 block 排版（卡片以 margin-bottom 留間距），避開手機瀏覽器 grid 捲動容器壓扁卡片的問題。 */
 .calendar { display: block; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+
+/* 回到頂端懸浮鍵（Cheng 2026-11-18）：行事曆區塊或整頁往下捲逾 300px 才出現，點一下回到最上方；
+   浮在內容之上（z-index 1500，低於彈窗 2000 與登入閘門 3000），底部留 iPhone 安全區。 */
+.back-to-top {
+  position: fixed;
+  right: 1rem;
+  bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+  z-index: 1500;
+  padding: .75rem 1rem;
+  color: #fff;
+  background: var(--brand);
+  border: 0;
+  border-radius: 999px;
+  box-shadow: 0 8px 24px rgba(7, 47, 71, .28);
+  font-size: .95rem;
+  font-weight: 800;
+  letter-spacing: .05em;
+  cursor: pointer;
+}
+.back-to-top[hidden] { display: none; }
+.back-to-top:active { transform: scale(.96); }
 .date-card { scroll-margin-top: .75rem; display: grid; grid-template-columns: 130px 1fr; overflow: hidden; background: var(--card); border: 1px solid var(--line); border-radius: .9rem; margin-bottom: .85rem; }
 .date-meta { padding: .95rem; background: #edf4f7; border-right: 1px solid var(--line); }
 .date-meta time { display: block; font-size: 1.1rem; font-weight: 800; }
